@@ -102,6 +102,10 @@ export default class GameScene extends Phaser.Scene {
             if (b.active && Phaser.Math.Distance.Between(x, y, b.x, b.y) < range) { hasTarget = true; break; }
           }
         }
+        if (!hasTarget) {
+          const wh = this.waspHiveSystem.hive;
+          if (wh.hp > 0 && Phaser.Math.Distance.Between(x, y, wh.x, wh.y) < range) hasTarget = true;
+        }
         if (!hasTarget) return false;
 
         // Spawn stinger at bee's tail, fire backward
@@ -190,9 +194,19 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    this.physics.add.overlap(this.stingers, this.waspHiveSystem.hiveGroup, (stinger, waspHive) => {
+    this.physics.add.overlap(this.stingers, this.waspHiveSystem.hive, (stinger, waspHive) => {
       stinger.destroy();
       if (waspHive.takeDamage(stinger.damage)) {
+        this._endGame(true, true);
+      }
+    });
+
+    this.physics.add.overlap(this.player, this.waspHiveSystem.hive, (player, waspHive) => {
+      if (!player.isDashing) return;
+      const now = this._gameTime;
+      if (now - (waspHive._lastDashHit || 0) < 500) return;
+      waspHive._lastDashHit = now;
+      if (waspHive.takeDamage(1)) {
         this._endGame(true, true);
       }
     });

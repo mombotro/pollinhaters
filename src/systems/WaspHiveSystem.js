@@ -15,9 +15,6 @@ export default class WaspHiveSystem {
 
     const { x, y } = this._randomPosition(playerHiveX, playerHiveY);
     this._hive = new WaspHive(scene, x, y);
-
-    this.hiveGroup = scene.physics.add.staticGroup();
-    this.hiveGroup.add(this._hive);
   }
 
   get hive() { return this._hive; }
@@ -27,14 +24,14 @@ export default class WaspHiveSystem {
   }
 
   update(time) {
-    if (!this._hive.active) return;
+    if (this._hive.hp <= 0) return;
     if (time - this._lastRegenAt < WASP_HIVE.REGEN_INTERVAL) return;
     this._lastRegenAt = time;
     this._hive.heal(WaspHiveSystem.regenAmount(this._totalHoneyStolen));
   }
 
   spawnWave(waveSpec) {
-    if (!this._hive.active) return;
+    if (this._hive.hp <= 0) return;
     const hx = this._hive.x;
     const hy = this._hive.y;
     const mult = WaspHiveSystem.countMult(this._totalHoneyStolen);

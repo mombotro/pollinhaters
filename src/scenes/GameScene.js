@@ -211,6 +211,14 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
+    this.physics.add.overlap(this.player, this.breakables, (player, breakable) => {
+      if (!player.isDashing) return;
+      const now = this._gameTime;
+      if (now - (breakable._lastDashHit || 0) < 500) return;
+      breakable._lastDashHit = now;
+      breakable.takeDamage(1);
+    });
+
     this.physics.add.overlap(this.wasps, this.player, (a, b) => {
       const wasp = a.waspType ? a : b;
       const bee  = a.waspType ? b : a;

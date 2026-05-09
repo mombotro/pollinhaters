@@ -14,10 +14,19 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     this._lastFired = 0;
     this._cursors = scene.input.keyboard.createCursorKeys();
     this._wasd = scene.input.keyboard.addKeys('W,A,S,D');
+    this._speed = BEE.SPEED;
+    this._sapCapacity = BEE.SAP_CAPACITY;
+    this._stingerDamage = BEE.STINGER_DAMAGE;
+    this._stingerRate = BEE.STINGER_RATE;
+    this._stingerRange = BEE.STINGER_RANGE;
+    this._stingerSpeed = BEE.STINGER_SPEED;
+    this.armor = 0;
+    this.setDrag(400, 400);
   }
 
   update(time, delta) {
     if (!this.alive) return;
+    this.setMaxVelocity(this._speed, this._speed);
     this._move();
     this._autoFire(time);
   }
@@ -28,24 +37,26 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     const up    = this._cursors.up.isDown    || this._wasd.W.isDown;
     const down  = this._cursors.down.isDown  || this._wasd.S.isDown;
 
-    let vx = (right ? 1 : 0) - (left ? 1 : 0);
-    let vy = (down  ? 1 : 0) - (up   ? 1 : 0);
+    let ax = (right ? 1 : 0) - (left ? 1 : 0);
+    let ay = (down  ? 1 : 0) - (up   ? 1 : 0);
 
-    if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+    if (ax !== 0 && ay !== 0) { ax *= 0.707; ay *= 0.707; }
 
-    this.setVelocity(vx * BEE.SPEED, vy * BEE.SPEED);
+    const accel = this._speed * 5;
+    this.setAcceleration(ax * accel, ay * accel);
   }
 
   _autoFire(time) {
-    if (!this._onFire || time - this._lastFired < BEE.STINGER_RATE) return;
-    const fired = this._onFire(this.x, this.y, BEE.STINGER_RANGE);
+    if (!this._onFire || time - this._lastFired < this._stingerRate) return;
+    const fired = this._onFire(this.x, this.y, this._stingerRange, this._stingerDamage, this._stingerSpeed);
     if (fired) this._lastFired = time;
   }
 
   // Returns true if bee died
   takeDamage(amount) {
     if (!this.alive) return false;
-    this.hp = Math.max(0, this.hp - amount);
+    const actual = Math.max(1, amount - this.armor);
+    this.hp = Math.max(0, this.hp - actual);
     this.setTint(0xff4444);
     this.scene.time.delayedCall(150, () => { if (this.active) this.clearTint(); });
     if (this.hp <= 0) {

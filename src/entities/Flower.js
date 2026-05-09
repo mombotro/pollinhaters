@@ -57,6 +57,15 @@ export default class Flower extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
+  // Called by nearby butterflies each frame to speed growth and slow death.
+  receiveButterflyBoost(delta) {
+    if (this._state === STATE.YOUNG && this._matureAt !== null) {
+      this._matureAt -= delta;           // grow faster
+    } else if (this._state === STATE.OLD) {
+      this._oldAt += delta * 0.5;        // die slower (timer advances at half rate)
+    }
+  }
+
   // Returns amount of sap actually taken (0 if YOUNG)
   collectSap(amount) {
     if (this._state === STATE.YOUNG) return 0;

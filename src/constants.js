@@ -82,6 +82,7 @@ export const TOWER = {
   RESIN_TRAP_SLOW: 0.4,        // speed multiplier for slowed wasps
   RESIN_TRAP_DURATION: 3000,   // ms slow lasts
   GUARD_POST_COST: 50,
+  GUARD_POST_HP: 3,             // hits before guard post is destroyed
   GUARD_BEE_HP: 4,
   GUARD_BEE_SPEED: 130,
   GUARD_BEE_RANGE: 120,
@@ -103,6 +104,8 @@ export const BUTTERFLY = {
   COUNT: 4,              // spawned at run start
   FLEE_RADIUS: 150,      // runs from player if closer than this
   DIRECTION_CHANGE: 3000, // ms between random direction changes
+  BOOST_RADIUS: 80,      // radius within which butterfly boosts nearby flowers
+  POLLINATE_RADIUS: 50,  // radius for auto-pollination (was 26)
 };
 
 export const SPIDER = {

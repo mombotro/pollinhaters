@@ -9,6 +9,7 @@ export default class ResourceManager {
 
   getSapCarried(id) { return this._carried[id] ?? 0; }
   getHoney() { return this._honey; }
+  getHoneyStorage() { return this._honeyStorage; }
   getPendingSap() { return this._pendingSap; }
 
   addSap(id, amount, capacity) {
@@ -44,5 +45,13 @@ export default class ResourceManager {
     if (this._honey < amount) return false;
     this._honey -= amount;
     return true;
+  }
+
+  setHoneyStorage(cap) {
+    this._honeyStorage = cap;
+  }
+
+  addPendingSap(amount) {
+    this._pendingSap += amount;
   }
 }

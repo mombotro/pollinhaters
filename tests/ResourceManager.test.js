@@ -80,4 +80,22 @@ describe('ResourceManager', () => {
     expect(rm.spendHoney(5)).toBe(false);
     expect(rm.getHoney()).toBe(0);
   });
+
+  it('setHoneyStorage raises cap and allows more honey', () => {
+    rm.addSap('player', 10, 10);
+    rm.depositSap('player');
+    rm.convertSap(10);
+    rm.setHoneyStorage(200);
+    rm.addSap('player', 10, 10);
+    rm.depositSap('player');
+    rm.convertSap(10);
+    expect(rm.getHoney()).toBe(20);
+  });
+
+  it('addPendingSap increments pending sap directly', () => {
+    rm.addPendingSap(7);
+    expect(rm.getPendingSap()).toBe(7);
+    rm.convertSap(7);
+    expect(rm.getHoney()).toBe(7);
+  });
 });

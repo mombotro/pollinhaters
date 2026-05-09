@@ -34,13 +34,16 @@ export default class Butterfly extends Phaser.Physics.Arcade.Sprite {
       Math.sin(this._angle) * BUTTERFLY.SPEED,
     );
 
-    // Auto-pollinate mature flowers in contact range
+    // Pollinate + boost nearby flowers in one pass
     flowers.getChildren().forEach(flower => {
-      if (!flower.active || flower.pollenCollected || flower.lifecycle === 'young') return;
+      if (!flower.active) return;
       const d = Phaser.Math.Distance.Between(this.x, this.y, flower.x, flower.y);
-      if (d < 26) {
+      if (d < BUTTERFLY.POLLINATE_RADIUS && !flower.pollenCollected && flower.lifecycle !== 'young') {
         flower.collectPollen();
         pollination.pollinate({ x: flower.x, y: flower.y }, time);
+      }
+      if (d < BUTTERFLY.BOOST_RADIUS) {
+        flower.receiveButterflyBoost(delta);
       }
     });
   }

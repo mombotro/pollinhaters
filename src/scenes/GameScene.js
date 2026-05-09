@@ -11,7 +11,6 @@ import WorkerBee from '../entities/WorkerBee.js';
 import WaveManager from '../systems/WaveManager.js';
 import HunterWasp from '../entities/HunterWasp.js';
 import RaiderWasp from '../entities/RaiderWasp.js';
-import StingerTurret from '../towers/StingerTurret.js';
 import ResinTrap from '../towers/ResinTrap.js';
 import GuardPost from '../towers/GuardPost.js';
 import XpGem from '../entities/XpGem.js';
@@ -240,9 +239,8 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this._towerList.forEach(tower => {
-      if (tower.towerType === 'stinger') tower.update(this._gameTime, this.wasps, this.stingers);
-      else if (tower.towerType === 'resin')  tower.update(this._gameTime, this.wasps);
-      else if (tower.towerType === 'guard')  tower.guard.update(this._gameTime, this.wasps, this.stingers);
+      if (tower.towerType === 'resin')  tower.update(this._gameTime, this.wasps);
+      else if (tower.towerType === 'guard' && tower.active) tower.guard.update(this._gameTime, this.wasps, this.stingers);
     });
 
     // Butterflies
@@ -252,7 +250,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Spiders
     this.spiders.getChildren().forEach(s =>
-      s.update(this._gameTime, scaledDelta, this.flowers, (x1, y1, x2, y2) => this._placeWeb(x1, y1, x2, y2))
+      s.update(this._gameTime, scaledDelta, this.flowers, (f1, f2) => this._placeWeb(f1, f2))
     );
 
     // Apply wind to all flying entities (adds to velocity already set this frame)
@@ -270,6 +268,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this._checkWorkerHunterCollisions(this._gameTime);
+    this._checkRaiderTowerCollisions(this._gameTime);
 
     if (Phaser.Input.Keyboard.JustDown(this._bKey)) {
       if (this.buildMenu.visible) this.buildMenu.hide();
@@ -340,11 +339,10 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  _placeWeb(x1, y1, x2, y2) {
+  _placeWeb(f1, f2) {
     const activeWebs = this._webList.filter(w => w.active);
     if (activeWebs.length >= WEB.MAX_COUNT) return;
-    // We remove the tooClose check for now, as webs are lines
-    this._webList.push(new WebTrap(this, x1, y1, x2, y2));
+    this._webList.push(new WebTrap(this, f1, f2));
   }
 
   _applyWind(windVec) {
@@ -368,7 +366,11 @@ export default class GameScene extends Phaser.Scene {
     }
     for (let i = 0; i < waveSpec.raiderCount; i++) {
       const { x, y } = this._edgePoint();
-      this.wasps.add(new RaiderWasp(this, x, y, this.hive));
+      const guardPosts = this._towerList.filter(t => t.towerType === 'guard' && t.active && t.hp > 0);
+      const target = guardPosts.length > 0 && Math.random() < 0.4
+        ? Phaser.Utils.Array.GetRandom(guardPosts)
+        : this.hive;
+      this.wasps.add(new RaiderWasp(this, x, y, this.hive, target));
     }
   }
 
@@ -395,6 +397,21 @@ export default class GameScene extends Phaser.Scene {
         } else {
           worker.takeDamage(WASP.DAMAGE);
         }
+      });
+    });
+  }
+
+  _checkRaiderTowerCollisions(time) {
+    this.wasps.getChildren().forEach(wasp => {
+      if (!wasp.active || wasp.waspType !== 'raider' || wasp.isRetreating) return;
+      this._towerList.forEach(tower => {
+        if (!tower.active || tower.towerType !== 'guard' || tower.hp <= 0) return;
+        const dist = Phaser.Math.Distance.Between(wasp.x, wasp.y, tower.x, tower.y);
+        if (dist > 32) return;
+        if (time - wasp.lastHit < WASP.HIT_COOLDOWN) return;
+        wasp.lastHit = time;
+        tower.takeDamage(WASP.DAMAGE);
+        wasp.retreat();
       });
     });
   }
@@ -437,14 +454,12 @@ export default class GameScene extends Phaser.Scene {
 
   _placeTower(key, x, y) {
     const costs = {
-      'stinger-turret': TOWER.STINGER_TURRET_COST,
-      'resin-trap':     TOWER.RESIN_TRAP_COST,
-      'guard-post':     TOWER.GUARD_POST_COST,
+      'resin-trap':  TOWER.RESIN_TRAP_COST,
+      'guard-post':  TOWER.GUARD_POST_COST,
     };
     if (!this.resources.spendHoney(costs[key])) return;
     let tower;
-    if (key === 'stinger-turret') tower = new StingerTurret(this, x, y);
-    else if (key === 'resin-trap') tower = new ResinTrap(this, x, y);
+    if (key === 'resin-trap') tower = new ResinTrap(this, x, y);
     else if (key === 'guard-post') tower = new GuardPost(this, x, y);
     if (tower) this._towerList.push(tower);
   }

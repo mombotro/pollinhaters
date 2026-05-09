@@ -92,25 +92,25 @@ export default class GameScene extends Phaser.Scene {
       this,
       this.hiveX,
       this.hiveY + 80,
-      (x, y, range, damage, speed) => {
-        let nearest = null, nearestDist = range;
-        this.wasps.getChildren().forEach(w => {
-          if (!w.active) return;
-          const d = Phaser.Math.Distance.Between(x, y, w.x, w.y);
-          if (d < nearestDist) { nearest = w; nearestDist = d; }
-        });
-        
-        // Also target breakables
-        this.breakables.getChildren().forEach(b => {
-          if (!b.active) return;
-          const d = Phaser.Math.Distance.Between(x, y, b.x, b.y);
-          if (d < nearestDist) { nearest = b; nearestDist = d; }
-        });
+      (x, y, range, damage, speed, backwardAngle) => {
+        // Only fire if an enemy is within range (any direction)
+        let hasTarget = false;
+        for (const w of this.wasps.getChildren()) {
+          if (w.active && Phaser.Math.Distance.Between(x, y, w.x, w.y) < range) { hasTarget = true; break; }
+        }
+        if (!hasTarget) {
+          for (const b of this.breakables.getChildren()) {
+            if (b.active && Phaser.Math.Distance.Between(x, y, b.x, b.y) < range) { hasTarget = true; break; }
+          }
+        }
+        if (!hasTarget) return false;
 
-        if (!nearest) return false;
-        const s = new Stinger(this, x, y, damage, range, speed);
+        // Spawn stinger at bee's tail, fire backward
+        const spawnX = x + Math.cos(backwardAngle) * 14;
+        const spawnY = y + Math.sin(backwardAngle) * 14;
+        const s = new Stinger(this, spawnX, spawnY, damage, range, speed);
         this.stingers.add(s);
-        s.launch(nearest.x, nearest.y);
+        s.launch(spawnX + Math.cos(backwardAngle) * range, spawnY + Math.sin(backwardAngle) * range);
         return true;
       },
     );
@@ -187,9 +187,21 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.wasps, this.player, (a, b) => {
       const wasp = a.waspType ? a : b;
       const bee  = a.waspType ? b : a;
-      if (wasp.waspType !== 'hunter') return;
       if (!bee.alive) return;
+      
       const now = this._gameTime;
+
+      // Dash attack logic
+      if (bee.isDashing) {
+        if (now - (wasp.lastDashedHit || 0) < 500) return; // Prevent multi-hits during same dash
+        wasp.lastDashedHit = now;
+        if (wasp.takeDamage(1)) {
+          this._dropPickup(wasp.x, wasp.y, 'xp');
+        }
+        return;
+      }
+
+      if (wasp.waspType !== 'hunter') return;
       if (now - wasp.lastHit < WASP.HIT_COOLDOWN) return;
       wasp.lastHit = now;
 

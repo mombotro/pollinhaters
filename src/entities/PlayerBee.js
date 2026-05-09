@@ -22,12 +22,42 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     this._stingerSpeed = BEE.STINGER_SPEED;
     this.armor = 0;
     this.setDrag(800, 800);
+    
+    this.isDashing = false;
+    this.dashEndTime = 0;
+    this.lastDashTime = 0;
+    this._space = scene.input.keyboard.addKey('SPACE');
   }
 
   update(time, delta) {
     if (!this.alive) return;
-    this.setMaxVelocity(this._speed, this._speed);
-    this._move();
+    
+    if (this.isDashing) {
+      if (time >= this.dashEndTime) {
+        this.isDashing = false;
+        this.clearTint();
+      }
+    } else {
+      if (Phaser.Input.Keyboard.JustDown(this._space) && time - this.lastDashTime >= BEE.DASH_COOLDOWN) {
+        this.isDashing = true;
+        this.dashEndTime = time + BEE.DASH_DURATION;
+        this.lastDashTime = time;
+        this.setTint(0x88ffff);
+        
+        const angle = this.rotation + Math.PI / 2;
+        const dashSpeed = this._speed * BEE.DASH_SPEED_MULTIPLIER;
+        this.setVelocity(Math.cos(angle) * dashSpeed, Math.sin(angle) * dashSpeed);
+      }
+    }
+
+    if (this.isDashing) {
+      this.setMaxVelocity(this._speed * BEE.DASH_SPEED_MULTIPLIER, this._speed * BEE.DASH_SPEED_MULTIPLIER);
+      this.setAcceleration(0, 0);
+    } else {
+      this.setMaxVelocity(this._speed, this._speed);
+      this._move();
+    }
+    
     this._autoFire(time);
   }
 
@@ -46,20 +76,22 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     this.setAcceleration(ax * accel, ay * accel);
 
     if (this.body.velocity.lengthSq() > 10) {
-      const targetRotation = this.body.velocity.angle() + Math.PI / 2;
+      const targetRotation = this.body.velocity.angle() - Math.PI / 2;
       this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, targetRotation, 0.15);
     }
   }
 
   _autoFire(time) {
     if (!this._onFire || time - this._lastFired < this._stingerRate) return;
-    const fired = this._onFire(this.x, this.y, this._stingerRange, this._stingerDamage, this._stingerSpeed);
+    // Backward = opposite of stinger-facing direction
+    const backwardAngle = this.rotation - Math.PI / 2;
+    const fired = this._onFire(this.x, this.y, this._stingerRange, this._stingerDamage, this._stingerSpeed, backwardAngle);
     if (fired) this._lastFired = time;
   }
 
   // Returns true if bee died
   takeDamage(amount) {
-    if (!this.alive) return false;
+    if (!this.alive || this.isDashing) return false;
     const actual = Math.max(1, amount - this.armor);
     this.hp = Math.max(0, this.hp - actual);
     this.setTint(0xff4444);

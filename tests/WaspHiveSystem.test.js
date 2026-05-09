@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 
+vi.mock('phaser', () => ({ default: { Math: { Between: () => 0, Distance: { Between: () => 999 } }, Utils: { Array: { GetRandom: () => null } } } }));
 vi.mock('../src/entities/WaspHive.js', () => ({ default: class WaspHive {} }));
+vi.mock('../src/entities/HunterWasp.js', () => ({ default: class HunterWasp {} }));
+vi.mock('../src/entities/RaiderWasp.js', () => ({ default: class RaiderWasp {} }));
 
 import WaspHiveSystem from '../src/systems/WaspHiveSystem.js';
 
@@ -47,9 +50,16 @@ describe('WaspHiveSystem.regenAmount', () => {
 
 describe('WaspHiveSystem.calcFlankWaypoint', () => {
   it('returns a point on the map boundary', () => {
-    const mapW = 2000, mapH = 2000;
-    const result = WaspHiveSystem.calcFlankWaypoint(1000, 1000, 1000, 1000, 0.5, mapW, mapH);
-    const onEdge = result.x <= 0 || result.x >= mapW || result.y <= 0 || result.y >= mapH;
+    const W = 2560, H = 1440;
+    const wp = WaspHiveSystem.calcFlankWaypoint(200, 200, 1280, 720, W, H, Math.PI / 2);
+    const onEdge = wp.x <= 1 || wp.x >= W - 1 || wp.y <= 1 || wp.y >= H - 1;
     expect(onEdge).toBe(true);
+  });
+  it('90deg rotation from eastward direct hits south edge', () => {
+    const W = 2560, H = 1440;
+    // hive at (100, 720), player at (1280, 720) — direct path is east (angle=0)
+    // rotate +PI/2 = south → should hit bottom edge y=H
+    const wp = WaspHiveSystem.calcFlankWaypoint(100, 720, 1280, 720, W, H, Math.PI / 2);
+    expect(wp.y).toBeCloseTo(H, 0);
   });
 });

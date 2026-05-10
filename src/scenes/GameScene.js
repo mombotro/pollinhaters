@@ -194,7 +194,7 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    this.physics.add.overlap(this.stingers, this.waspHiveSystem.hive, (stinger, waspHive) => {
+    this.physics.add.overlap(this.waspHiveSystem.hive, this.stingers, (waspHive, stinger) => {
       stinger.destroy();
       if (waspHive.takeDamage(stinger.damage)) {
         this._endGame(true, true);

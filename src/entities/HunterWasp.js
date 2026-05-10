@@ -65,12 +65,12 @@ export default class HunterWasp extends Phaser.Physics.Arcade.Sprite {
     }
 
     // If target is dead/invalid, find a fallback
-    if (!target || !target.active || !target.alive) {
+    if (!target || !target.active || target.alive === false) {
       const workers = this.scene.workers ? this.scene.workers.getChildren().filter(w => w.active && w.alive) : [];
       const guardPosts = this.scene._towerList ? this.scene._towerList.filter(t => t.towerType === 'guard' && t.active && t.hp > 0) : [];
       const potentialTargets = [...workers, ...guardPosts];
       if (this.scene.hive && this.scene.hive.active) potentialTargets.push(this.scene.hive);
-      
+
       let nearest = null, nearestDist = Infinity;
       potentialTargets.forEach(t => {
         const d = Phaser.Math.Distance.Between(this.x, this.y, t.x, t.y);
@@ -80,7 +80,7 @@ export default class HunterWasp extends Phaser.Physics.Arcade.Sprite {
       this._target = target;
     }
 
-    if (!target || !target.active || !target.alive) {
+    if (!target || !target.active) {
       // Counter wind so wasp doesn't drift off screen if absolutely no targets exist
       this.setAcceleration(0, 0);
       if (windVec) this.body.setVelocity(-windVec.x, -windVec.y);

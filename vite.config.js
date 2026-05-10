@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/pollinators/',
+  base: '/pollinhaters/',
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],

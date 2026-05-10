@@ -16,6 +16,7 @@ import GuardPost from '../towers/GuardPost.js';
 import Pickup from '../entities/Pickup.js';
 import Breakable from '../entities/Breakable.js';
 import HUD from '../ui/HUD.js';
+import TouchControls from '../ui/TouchControls.js';
 import BuildMenu from '../ui/BuildMenu.js';
 import LevelUpMenu from '../ui/LevelUpMenu.js';
 import WindSystem from '../systems/WindSystem.js';
@@ -289,6 +290,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.hud = new HUD(this, this.resources, this.hive, this.player, this.wind);
+    this._touchControls = new TouchControls(this, this.player);
     this._spawnPassiveEntities();
   }
 
@@ -376,6 +378,7 @@ export default class GameScene extends Phaser.Scene {
     const wave = this.waveManager.update(this._playTime);
     if (wave) this.waspHiveSystem.spawnWave(wave);
     this.waspHiveSystem.update(this._gameTime);
+    this._touchControls.update();
   }
 
   _dropPickup(x, y, type) {

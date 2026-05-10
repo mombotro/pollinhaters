@@ -28,6 +28,8 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     this.lastDashTime = 0;
     this._dashTargetRotation = null;
     this._space = scene.input.keyboard.addKey('SPACE');
+    this._touchAxis = { x: 0, y: 0 };
+    this._touchDash = false;
   }
 
   update(time, delta) {
@@ -42,7 +44,8 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
         this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, this._dashTargetRotation, 0.5);
       }
     } else {
-      if (Phaser.Input.Keyboard.JustDown(this._space) && time - this.lastDashTime >= BEE.DASH_COOLDOWN) {
+      if ((Phaser.Input.Keyboard.JustDown(this._space) || this._touchDash) && time - this.lastDashTime >= BEE.DASH_COOLDOWN) {
+        this._touchDash = false;
         // Determine dash direction from held keys; fall back to current facing
         const left  = this._cursors.left.isDown  || this._wasd.A.isDown;
         const right = this._cursors.right.isDown || this._wasd.D.isDown;
@@ -86,7 +89,12 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     let ax = (right ? 1 : 0) - (left ? 1 : 0);
     let ay = (down  ? 1 : 0) - (up   ? 1 : 0);
 
-    if (ax !== 0 && ay !== 0) { ax *= 0.707; ay *= 0.707; }
+    if (ax === 0 && ay === 0) {
+      ax = this._touchAxis.x;
+      ay = this._touchAxis.y;
+    } else if (ax !== 0 && ay !== 0) {
+      ax *= 0.707; ay *= 0.707;
+    }
 
     const accel = this._speed * 10;
     this.setAcceleration(ax * accel, ay * accel);

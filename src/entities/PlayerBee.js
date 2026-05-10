@@ -37,7 +37,8 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
 
   update(time, delta) {
     if (!this.alive) return;
-    
+    this._readGamepad();
+
     if (this.isDashing) {
       if (time >= this.dashEndTime) {
         this.isDashing = false;
@@ -48,18 +49,20 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
       }
     } else {
       if ((Phaser.Input.Keyboard.JustDown(this._space) || this._touchDash) && time - this.lastDashTime >= BEE.DASH_COOLDOWN) {
+
         this._touchDash = false;
-        // Determine dash direction from held keys; fall back to current facing
+        // Determine dash direction from held keys / gamepad; fall back to forward
         const left  = this._cursors.left.isDown  || this._wasd.A.isDown;
         const right = this._cursors.right.isDown || this._wasd.D.isDown;
         const up    = this._cursors.up.isDown    || this._wasd.W.isDown;
         const down  = this._cursors.down.isDown  || this._wasd.S.isDown;
-        const ax = (right ? 1 : 0) - (left ? 1 : 0);
-        const ay = (down  ? 1 : 0) - (up   ? 1 : 0);
+        let ax = (right ? 1 : 0) - (left ? 1 : 0);
+        let ay = (down  ? 1 : 0) - (up   ? 1 : 0);
+        if (ax === 0 && ay === 0) { ax = this._gpAxis.x; ay = this._gpAxis.y; }
 
         const dashAngle = (ax !== 0 || ay !== 0)
           ? Math.atan2(ay, ax)
-          : this.rotation + Math.PI / 2;
+          : this.rotation - Math.PI / 2;
 
         this._dashTargetRotation = dashAngle - Math.PI / 2;
         this.isDashing = true;
@@ -71,8 +74,6 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(Math.cos(dashAngle) * dashSpeed, Math.sin(dashAngle) * dashSpeed);
       }
     }
-
-    this._readGamepad();
 
     // Right-click aim: compute angle in screen space (avoids worldX quirks)
     const ptr = this.scene.input.mousePointer;
@@ -122,8 +123,8 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
 
     // Hold RT (index 7) + right stick → aim
     const rt = pad.buttons[7]?.value ?? 0;
-    const rx = pad.axes[2]?.getValue() ?? 0;
-    const ry = pad.axes[3]?.getValue() ?? 0;
+    const rx = pad.rightStick.x;
+    const ry = pad.rightStick.y;
     if (rt > 0.5 && Math.hypot(rx, ry) > DEAD) {
       this._aimAngle = Math.atan2(ry, rx);
     }

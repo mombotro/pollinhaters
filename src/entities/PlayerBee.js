@@ -70,10 +70,13 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
-    // Right-click aim: update aim angle from mouse world position
+    // Right-click aim: compute angle in screen space (avoids worldX quirks)
     const ptr = this.scene.input.mousePointer;
     if (ptr && ptr.rightButtonDown()) {
-      this._aimAngle = Math.atan2(ptr.worldY - this.y, ptr.worldX - this.x);
+      const cam = this.scene.cameras.main;
+      const beeScreenX = (this.x - cam.scrollX) * cam.zoom;
+      const beeScreenY = (this.y - cam.scrollY) * cam.zoom;
+      this._aimAngle = Math.atan2(ptr.y - beeScreenY, ptr.x - beeScreenX);
     } else {
       this._aimAngle = null;
     }

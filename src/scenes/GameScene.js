@@ -337,7 +337,7 @@ export default class GameScene extends Phaser.Scene {
         SoundSynth.play('hive-hit');
         this.resources.stealHoney(WASP.HONEY_STEAL);
         wasp.honeyCarried = WASP.HONEY_STEAL;
-        wasp.retreat();
+        if (typeof wasp.retreat === 'function') wasp.retreat();
       } else {
         this._burst(hive.x, hive.y, 0x6b3a1f, 6);
         SoundSynth.play('hive-hit');
@@ -470,7 +470,7 @@ export default class GameScene extends Phaser.Scene {
           tower.consume();
           wasp.poisonCarried = true;
           wasp._poisonTarget = null;
-          wasp.retreat();
+          if (typeof wasp.retreat === 'function') wasp.retreat();
         }
       });
     });

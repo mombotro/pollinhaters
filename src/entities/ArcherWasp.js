@@ -5,7 +5,7 @@ import Stinger from './Stinger.js';
 export default class ArcherWasp extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, 'wasp');
-    this.setScale(0.5).setTint(0xaa44ff);
+    this.setScale(1.0).setTint(0xaa44ff);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.waspType = 'archer';

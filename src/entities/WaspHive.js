@@ -3,7 +3,8 @@ import { WASP_HIVE } from '../constants.js';
 
 export default class WaspHive extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    super(scene, x, y, 'wasp-hive');
+    super(scene, x, y, 'hives', 0);
+    this.setScale(0.2);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setImmovable(true);

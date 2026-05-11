@@ -3,7 +3,8 @@ import { HIVE } from '../constants.js';
 
 export default class Hive extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    super(scene, x, y, 'hive');
+    super(scene, x, y, 'hives', 1);
+    this.setScale(0.2);
     scene.add.existing(this);
     scene.physics.add.existing(this, true); // static body
     this.hp = HIVE.HP;

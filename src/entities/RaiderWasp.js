@@ -4,7 +4,7 @@ import { WASP, TOWER } from '../constants.js';
 export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, hive, target = null, waspHive = null) {
     super(scene, x, y, 'wasp');
-    this.setScale(0.5).setTint(0xff8866);
+    this.setScale(1.0).setTint(0xff8866);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.waspType = 'raider';

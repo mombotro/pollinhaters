@@ -52,6 +52,10 @@ export default class MenuScene extends Phaser.Scene {
     btnControls.on('pointerout',  () => this._refreshHighlight());
     btnControls.on('pointerdown', () => this._showControls());
 
+    this.add.text(cx, 700, 'alpha v1', {
+      fontSize: '14px', color: '#666666', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+
     this._btns = [btnStart, btnUpgrades, btnPlayground, btnControls];
     this._actions = [
       () => this.scene.start('GameScene'),
@@ -63,45 +67,47 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   _showControls() {
-    if (this._controlsPanel) return;
+    if (this._controlsObjs) return;
     const cx = 640, cy = 360;
-    const panel = this.add.container(0, 0).setDepth(300);
+    const D = 300;
+    const objs = [];
 
-    const bg = this.add.rectangle(cx, cy, 760, 480, 0x000000, 0.93);
-    const title = this.add.text(cx, cy - 210, 'CONTROLS', {
+    const add = obj => { objs.push(obj); return obj; };
+
+    add(this.add.rectangle(cx, cy, 760, 480, 0x000000, 0.93).setDepth(D));
+    add(this.add.text(cx, cy - 210, 'CONTROLS', {
       fontSize: '30px', color: '#ffd700', fontFamily: 'monospace', fontStyle: 'bold',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(D));
 
     const s = { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' };
     const h = { ...s, color: '#ffdd44', fontSize: '19px', fontStyle: 'bold' };
     const lh = 32, top = cy - 150;
+    const col1 = cx - 185, col2 = cx + 50;
 
-    const kbLines  = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu'];
-    const gpLines  = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'D-pad          —  Menus'];
+    const kbLines = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu'];
+    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'D-pad          —  Menus'];
 
-    const texts = [];
-    kbLines.forEach((label, i) => {
-      texts.push(this.add.text(col1, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5));
-    });
-    gpLines.forEach((label, i) => {
-      texts.push(this.add.text(col2, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5));
-    });
+    kbLines.forEach((label, i) =>
+      add(this.add.text(col1, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D))
+    );
+    gpLines.forEach((label, i) =>
+      add(this.add.text(col2, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D))
+    );
 
-    const btnClose = this.add.text(cx, cy + 210, '[ CLOSE ]', {
+    const btnClose = add(this.add.text(cx, cy + 210, '[ CLOSE ]', {
       fontSize: '22px', color: '#ff4444', fontFamily: 'monospace',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(D).setInteractive({ useHandCursor: true }));
     btnClose.on('pointerover', () => btnClose.setColor('#ff8888'));
     btnClose.on('pointerout',  () => btnClose.setColor('#ff4444'));
     btnClose.on('pointerdown', () => this._hideControls());
 
-    panel.add([bg, title, ...texts, btnClose]);
-    this._controlsPanel = panel;
+    this._controlsObjs = objs;
   }
 
   _hideControls() {
-    if (!this._controlsPanel) return;
-    this._controlsPanel.destroy(true);
-    this._controlsPanel = null;
+    if (!this._controlsObjs) return;
+    this._controlsObjs.forEach(o => o.destroy());
+    this._controlsObjs = null;
   }
 
   _refreshHighlight() {

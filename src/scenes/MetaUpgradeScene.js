@@ -12,6 +12,8 @@ const UPGRADES = [
   { key: 'START_GUARD',       label: 'Start: Guard',   cost: 200, max: 1, desc: 'Begin with 1 guard post' },
   { key: 'START_SOLDIER',     label: 'Start: Soldier', cost: 120, max: 1, desc: 'Begin with 1 soldier bee escort' },
   { key: 'SOLDIER_DMG_META',  label: 'Soldier Damage', cost: 100, max: 3, desc: '+1 soldier damage per level' },
+  { key: 'QUICK_RUN_META',   label: 'Quick Run',      cost: 50,  max: 3, desc: 'Survive 1 minute less per level (min 7 min)' },
+  { key: 'HARD_MODE_META',   label: 'Hard Mode',      cost: 75,  max: 3, desc: '+2 wasps per wave per level (self-challenge)' },
 ];
 
 export default class MetaUpgradeScene extends Phaser.Scene {

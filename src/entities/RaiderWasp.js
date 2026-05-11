@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { WASP, TOWER } from '../constants.js';
+import SoundSynth from '../systems/SoundSynth.js';
 
 export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, hive, target = null, waspHive = null) {
@@ -64,11 +65,16 @@ export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
         ? baseSpeed * TOWER.RESIN_TRAP_SLOW
         : baseSpeed;
       this._movePhysics(this.retreatTarget.x, this.retreatTarget.y, speed);
+      this._separate();
       if (Phaser.Math.Distance.Between(this.x, this.y, this.retreatTarget.x, this.retreatTarget.y) < 50) {
         if (this.honeyCarried > 0 && this.scene.waspHiveSystem) {
-          this.scene._burst?.(this.retreatTarget.x, this.retreatTarget.y, 0xff4400, 8);
+          this.scene._burst?.(this.retreatTarget.x, this.retreatTarget.y, 0xffaa00, 10);
+          this.scene._burst?.(this.retreatTarget.x, this.retreatTarget.y, 0xff4400, 6);
+          SoundSynth.play('deposit');
           this.scene.waspHiveSystem.onHoneyStolen(this.honeyCarried);
         } else if (this.poisonCarried && this.scene.waspHiveSystem) {
+          this.scene._burst?.(this.retreatTarget.x, this.retreatTarget.y, 0x44ff44, 8);
+          SoundSynth.play('hive-hit');
           this.scene.waspHiveSystem.onPoisonDelivered(TOWER.POISON_HONEY_DAMAGE);
         }
         this.destroy();
@@ -85,6 +91,7 @@ export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
       ? baseSpeed * TOWER.RESIN_TRAP_SLOW
       : baseSpeed;
     this._movePhysics(this._target.x, this._target.y, speed);
+    this._separate();
   }
 
   _movePhysics(tx, ty, speed) {
@@ -101,6 +108,26 @@ export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
     if (this.body.velocity.lengthSq() > 10) {
       const targetRotation = this.body.velocity.angle() + Math.PI / 2;
       this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, targetRotation, 0.15);
+    }
+  }
+
+  _separate() {
+    const RADIUS = 64, FORCE = 400;
+    let sx = 0, sy = 0;
+    this.scene.wasps.getChildren().forEach(other => {
+      if (!other.active || other === this) return;
+      const dx = this.x - other.x;
+      const dy = this.y - other.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0 && dist < RADIUS) {
+        const s = ((RADIUS - dist) / RADIUS) * FORCE;
+        sx += (dx / dist) * s;
+        sy += (dy / dist) * s;
+      }
+    });
+    if (sx !== 0 || sy !== 0) {
+      this.body.acceleration.x += sx;
+      this.body.acceleration.y += sy;
     }
   }
 

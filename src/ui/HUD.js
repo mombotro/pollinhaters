@@ -32,8 +32,8 @@ export default class HUD {
     obj.setText(value);
   }
 
-  update(elapsed, waveNumber, workerCount, level, currentXp, reqXp, waspHoney) {
-    const remaining = Math.max(0, TIMER.RUN_DURATION - elapsed);
+  update(elapsed, waveNumber, workerCount, level, currentXp, reqXp, waspHoney, runDuration = TIMER.RUN_DURATION) {
+    const remaining = Math.max(0, runDuration - elapsed);
     const mins = Math.floor(remaining / 60000);
     const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
 

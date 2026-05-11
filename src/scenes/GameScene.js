@@ -49,6 +49,14 @@ export default class GameScene extends Phaser.Scene {
     this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x2d5a1b);
     this.cameras.main.setBounds(0, 0, WORLD.WIDTH, WORLD.HEIGHT);
 
+    const BT = 56;
+    const borderGfx = this.add.graphics().setDepth(6);
+    borderGfx.fillStyle(0x142d0a, 1);
+    borderGfx.fillRect(0, 0, WORLD.WIDTH, BT);
+    borderGfx.fillRect(0, WORLD.HEIGHT - BT, WORLD.WIDTH, BT);
+    borderGfx.fillRect(0, 0, BT, WORLD.HEIGHT);
+    borderGfx.fillRect(WORLD.WIDTH - BT, 0, BT, WORLD.HEIGHT);
+
     this._decoList = [];
     for (let i = 0; i < 150; i++) {
       const x = Phaser.Math.Between(0, WORLD.WIDTH);
@@ -207,10 +215,15 @@ export default class GameScene extends Phaser.Scene {
       soldier.takeDamage(stinger.damage);
     });
 
+    // Apply meta-progression upgrades from save
+    const _metaSave = MetaSave.load();
+    const _u = _metaSave.upgrades;
+
+    this._runDuration = TIMER.RUN_DURATION - (_u.QUICK_RUN_META ?? 0) * 60000;
     this.waveManager = new WaveManager({
       firstWaveDelay: WAVE.FIRST_WAVE_DELAY,
       waveInterval: WAVE.WAVE_INTERVAL,
-      baseCount: WAVE.BASE_COUNT,
+      baseCount: WAVE.BASE_COUNT + (_u.HARD_MODE_META ?? 0) * 2,
       countIncrement: WAVE.COUNT_INCREMENT,
     });
 
@@ -220,10 +233,6 @@ export default class GameScene extends Phaser.Scene {
       playerHiveY: this.hiveY,
       onDestroyed: () => this._endGame(true, true),
     });
-
-    // Apply meta-progression upgrades from save
-    const _metaSave = MetaSave.load();
-    const _u = _metaSave.upgrades;
 
     this._metaSpeedBonus = (_u.BEE_SPEED_META ?? 0) * 20;
     if (this._metaSpeedBonus)  this.player._speed += this._metaSpeedBonus;
@@ -356,6 +365,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.upgrades.purchase(key)) {
         this._applyUpgrade(key);
       }
+      if (this.player) this.player._gpAWasDown = true;
     });
 
     this.input.mouse.disableContextMenu();
@@ -401,9 +411,9 @@ export default class GameScene extends Phaser.Scene {
     this._playTime += scaledDelta;
 
     const workerCount = this.workers.getChildren().filter(w => w.alive).length;
-    if (this.hud) this.hud.update(this._playTime, this.waveManager.getWaveNumber(), workerCount, this.level, this.xp, this.reqXp, this.waspHiveSystem.honeyStolen);
+    if (this.hud) this.hud.update(this._playTime, this.waveManager.getWaveNumber(), workerCount, this.level, this.xp, this.reqXp, this.waspHiveSystem.honeyStolen, this._runDuration);
 
-    if (!this._playground && this._playTime >= TIMER.RUN_DURATION) {
+    if (!this._playground && this._playTime >= this._runDuration) {
       this._endGame(true);
       return;
     }
@@ -606,6 +616,7 @@ export default class GameScene extends Phaser.Scene {
     this._pauseObjs = null;
     this._paused = false;
     this.physics.world.resume();
+    if (this.player) this.player._gpAWasDown = true;
   }
 
   _showPauseControls() {

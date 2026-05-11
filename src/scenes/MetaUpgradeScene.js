@@ -93,9 +93,9 @@ export default class MetaUpgradeScene extends Phaser.Scene {
       () => this.scene.start('MenuScene'),
     ];
     this._gpIdx    = 0;
-    this._gpAWas   = false;
-    this._gpBWas   = false;
-    this._gpDirWas = false;
+    this._gpAWas   = true;
+    this._gpBWas   = true;
+    this._gpDirWas = true;
 
     this._refresh();
   }
@@ -155,7 +155,7 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   _gpRefresh() {
     if (!this._navObjs) return;
     this._navObjs.forEach((obj, i) => {
-      obj.setColor(i === this._gpIdx ? '#ffffff' : this._navColors[i]);
+      obj.setColor(i === this._gpIdx ? '#ffff44' : this._navColors[i]);
     });
   }
 

@@ -5,9 +5,9 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     this._selIdx = 0;
-    this._gpAWasDown   = false;
-    this._gpDirWasDown = false;
-    this._gpBWasDown   = false;
+    this._gpAWasDown   = true;
+    this._gpDirWasDown = true;
+    this._gpBWasDown   = true;
     const cx = 640, cy = 360;
 
     this._headerDom = this.add.dom(cx, cy - 260).createFromHTML(`

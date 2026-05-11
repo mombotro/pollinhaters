@@ -583,9 +583,10 @@ export default class GameScene extends Phaser.Scene {
       this._gpPauseBWas = bDown;
       return;
     }
-    const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed;
+    const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed ||
+                    Math.abs(pad.leftStick.y) > 0.4;
     if (dirDown && !this._gpPauseDirWas) {
-      const dy = pad.buttons[12]?.pressed ? -1 : 1;
+      const dy = (pad.buttons[12]?.pressed || pad.leftStick.y < -0.4) ? -1 : 1;
       this._pauseSelIdx = (this._pauseSelIdx + dy + this._pauseBtns.length) % this._pauseBtns.length;
       this._gpRefreshPause();
     }
@@ -927,6 +928,7 @@ export default class GameScene extends Phaser.Scene {
     });
     this._pgActions  = pgDefs.map(d => d.action);
     this._pgSelIdx   = 0;
+    this._pgGpLBWas  = false;
     this._pgGpRBWas  = false;
     this._pgGpXWas   = false;
     this._pgRefresh();
@@ -937,6 +939,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _updatePlaygroundGamepad(pad) {
+    const lbDown = pad.buttons[4]?.pressed ?? false;
+    if (lbDown && !this._pgGpLBWas) {
+      this._pgSelIdx = (this._pgSelIdx - 1 + this._pgBtns.length) % this._pgBtns.length;
+      this._pgRefresh();
+    }
+    this._pgGpLBWas = lbDown;
+
     const rbDown = pad.buttons[5]?.pressed ?? false;
     if (rbDown && !this._pgGpRBWas) {
       this._pgSelIdx = (this._pgSelIdx + 1) % this._pgBtns.length;

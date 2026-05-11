@@ -86,8 +86,8 @@ export default class MenuScene extends Phaser.Scene {
     const lh = 32, top = cy - 165;
     const col1 = cx - 330, col2 = cx + 60;
 
-    const kbLines = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu'];
-    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'B button       —  Build menu', 'D-pad          —  Navigate'];
+    const kbLines = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu', 'Esc            —  Pause'];
+    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'B button       —  Build menu', 'Start          —  Pause'];
 
     kbLines.forEach((label, i) =>
       add(this.add.text(col1, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D))

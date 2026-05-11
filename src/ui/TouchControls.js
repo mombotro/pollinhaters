@@ -1,10 +1,13 @@
-const JOY_MAX_R = 70;
-const DASH_CX  = 1150;
-const DASH_CY  = 620;
-const DASH_R   = 50;
-const BUILD_CX = 1150;
-const BUILD_CY = 500;
-const BUILD_R  = 50;
+const JOY_MAX_R  = 70;
+const DASH_CX   = 1150;
+const DASH_CY   = 620;
+const DASH_R    = 50;
+const BUILD_CX  = 1150;
+const BUILD_CY  = 500;
+const BUILD_R   = 50;
+const PAUSE_CX  = 1230;
+const PAUSE_CY  = 55;
+const PAUSE_R   = 28;
 
 export default class TouchControls {
   constructor(scene, player) {
@@ -33,6 +36,9 @@ export default class TouchControls {
     this._buildLabel = scene.add.text(BUILD_CX, BUILD_CY, 'BUILD', {
       fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0.75).setVisible(false);
+    this._pauseLabel = scene.add.text(PAUSE_CX, PAUSE_CY, 'II', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0.75).setVisible(false);
 
     scene.input.on('pointerdown',      this._onDown, this);
     scene.input.on('pointermove',      this._onMove, this);
@@ -52,6 +58,12 @@ export default class TouchControls {
     this._staticGfx.lineStyle(2, 0xffffff, 0.5);
     this._staticGfx.strokeCircle(BUILD_CX, BUILD_CY, BUILD_R);
     this._buildLabel.setVisible(true);
+
+    this._staticGfx.fillStyle(0x888888, 0.45);
+    this._staticGfx.fillCircle(PAUSE_CX, PAUSE_CY, PAUSE_R);
+    this._staticGfx.lineStyle(2, 0xffffff, 0.4);
+    this._staticGfx.strokeCircle(PAUSE_CX, PAUSE_CY, PAUSE_R);
+    this._pauseLabel.setVisible(true);
   }
 
   _onDown(ptr) {
@@ -61,6 +73,11 @@ export default class TouchControls {
       this._drawDashButton();
     }
     const { x, y } = ptr;
+    if (Math.hypot(x - PAUSE_CX, y - PAUSE_CY) <= PAUSE_R) {
+      const s = this._scene;
+      if (s._paused) s._hidePause(); else if (!s._ended) s._showPause();
+      return;
+    }
     if (Math.hypot(x - DASH_CX, y - DASH_CY) <= DASH_R) {
       if (!this._dashPtr) {
         this._dashPtr = ptr;
@@ -162,5 +179,6 @@ export default class TouchControls {
     this._gfx.destroy();
     this._label.destroy();
     this._buildLabel.destroy();
+    this._pauseLabel.destroy();
   }
 }

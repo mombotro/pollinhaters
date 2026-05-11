@@ -334,8 +334,11 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    this._bKey = this.input.keyboard.addKey('B');
-    this._hKey = this.input.keyboard.addKey('H'); // debug add honey
+    this._bKey   = this.input.keyboard.addKey('B');
+    this._hKey   = this.input.keyboard.addKey('H');
+    this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this._gpStartWasDown = false;
+    this._paused = false;
     this._placing = null;
     this._ghost = null;
 
@@ -368,6 +371,18 @@ export default class GameScene extends Phaser.Scene {
       this.physics.world.pause();
       return;
     }
+
+    // Pause toggle — Escape or gamepad Start (button 9)
+    const justEsc = Phaser.Input.Keyboard.JustDown(this._escKey);
+    const _gp = this.input.gamepad;
+    const _pad = _gp?.total > 0 ? _gp.gamepads.find(p => p?.connected) : null;
+    const startDown = _pad?.buttons[9]?.pressed ?? false;
+    if ((justEsc || (startDown && !this._gpStartWasDown)) && !this._ended) {
+      if (this._paused) this._hidePause(); else this._showPause();
+    }
+    this._gpStartWasDown = startDown;
+
+    if (this._paused) return;
 
     this.physics.world.resume();
 
@@ -498,6 +513,91 @@ export default class GameScene extends Phaser.Scene {
     let p = this.pickups.getFirstDead(false);
     if (!p) { p = new Pickup(this, x, y); this.pickups.add(p); }
     p.fire(x, y, type);
+  }
+
+  _showPause() {
+    if (this._pauseObjs) return;
+    this._paused = true;
+    this.physics.world.pause();
+    if (this.buildMenu.visible) this.buildMenu.hide();
+
+    const cx = 640, cy = 360, D = 500;
+    const objs = [];
+    const add = obj => { objs.push(obj); return obj; };
+
+    add(this.add.rectangle(cx, cy, 1280, 720, 0x000000, 0.72).setDepth(D - 1).setScrollFactor(0).setInteractive());
+    add(this.add.text(cx, cy - 150, 'PAUSED', {
+      fontSize: '52px', color: '#ffd700', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(D).setScrollFactor(0));
+
+    const mkBtn = (label, y, color = '#ffd700') => {
+      const b = add(this.add.text(cx, y, label, {
+        fontSize: '30px', color, fontFamily: 'monospace',
+      }).setOrigin(0.5).setDepth(D).setScrollFactor(0).setInteractive({ useHandCursor: true }));
+      b.on('pointerover', () => b.setColor('#ffffff'));
+      b.on('pointerout',  () => b.setColor(color));
+      return b;
+    };
+
+    mkBtn('[ RESUME ]',   cy - 50).on('pointerdown', () => this._hidePause());
+    mkBtn('[ CONTROLS ]', cy + 20).on('pointerdown', () => this._showPauseControls());
+    mkBtn('[ RESTART ]',  cy + 90).on('pointerdown', () => {
+      this._hidePause();
+      this.scene.start('GameScene', { playground: this._playground });
+    });
+    mkBtn('[ MENU ]',     cy + 160, '#aaaaaa').on('pointerdown', () => this.scene.start('MenuScene'));
+
+    this._pauseObjs = objs;
+  }
+
+  _hidePause() {
+    if (!this._pauseObjs) return;
+    this._hidePauseControls();
+    this._pauseObjs.forEach(o => o.destroy());
+    this._pauseObjs = null;
+    this._paused = false;
+    this.physics.world.resume();
+  }
+
+  _showPauseControls() {
+    if (this._pauseCtrlObjs) return;
+    const cx = 640, cy = 360, D = 501;
+    const objs = [];
+    const add = obj => { objs.push(obj); return obj; };
+
+    add(this.add.rectangle(cx, cy, 800, 530, 0x000000, 0.97).setDepth(D).setScrollFactor(0));
+    add(this.add.text(cx, cy - 230, 'CONTROLS', {
+      fontSize: '30px', color: '#ffd700', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(D).setScrollFactor(0));
+
+    const s = { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' };
+    const h = { ...s, color: '#ffdd44', fontSize: '19px', fontStyle: 'bold' };
+    const lh = 32, top = cy - 175, col1 = cx - 330, col2 = cx + 60;
+
+    const kbLines = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu', 'Esc            —  Pause'];
+    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'B button       —  Build menu', 'Start          —  Pause'];
+
+    kbLines.forEach((label, i) =>
+      add(this.add.text(col1, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D).setScrollFactor(0))
+    );
+    gpLines.forEach((label, i) =>
+      add(this.add.text(col2, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D).setScrollFactor(0))
+    );
+
+    const btnBack = add(this.add.text(cx, cy + 225, '[ BACK ]', {
+      fontSize: '22px', color: '#ff4444', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D).setScrollFactor(0).setInteractive({ useHandCursor: true }));
+    btnBack.on('pointerover', () => btnBack.setColor('#ff8888'));
+    btnBack.on('pointerout',  () => btnBack.setColor('#ff4444'));
+    btnBack.on('pointerdown', () => this._hidePauseControls());
+
+    this._pauseCtrlObjs = objs;
+  }
+
+  _hidePauseControls() {
+    if (!this._pauseCtrlObjs) return;
+    this._pauseCtrlObjs.forEach(o => o.destroy());
+    this._pauseCtrlObjs = null;
   }
 
   _burst(x, y, color, count = 8) {

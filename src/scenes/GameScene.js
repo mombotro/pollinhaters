@@ -45,6 +45,9 @@ export default class GameScene extends Phaser.Scene {
     this.level = 1;
     this.reqXp = XP.BASE_REQ;
     this._playground = data.playground ?? false;
+    this._paused = false;
+    this._pauseObjs = null;
+    this._pauseCtrlObjs = null;
   }
 
   create() {

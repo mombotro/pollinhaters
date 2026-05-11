@@ -22,6 +22,7 @@ export default class HunterWasp extends Phaser.Physics.Arcade.Sprite {
   setFlankWaypoint(x, y) { this._flankWaypoint = { x, y }; }
 
   update(time, windVec) {
+    if (this._honeyEmitter) this._honeyEmitter.setPosition(this.x, this.y);
     if (this._flankWaypoint) {
       const dist = Phaser.Math.Distance.Between(this.x, this.y, this._flankWaypoint.x, this._flankWaypoint.y);
       if (dist <= 50) {
@@ -183,15 +184,14 @@ export default class HunterWasp extends Phaser.Physics.Arcade.Sprite {
   _startHoneyGlow() {
     if (this._honeyEmitter) return;
     this._honeyEmitter = this.scene.add.particles(this.x, this.y, 'particle', {
-      speed: { min: 20, max: 45 },
-      scale: { start: 0.45, end: 0 },
+      speed: { min: 30, max: 60 },
+      scale: { start: 0.4, end: 0 },
       alpha: { start: 1, end: 0 },
-      lifespan: 600,
+      lifespan: 350,
       frequency: 80,
       tint: 0xffdd00,
       quantity: 1,
     });
-    this._honeyEmitter.startFollow(this);
     this.once('destroy', () => { if (this._honeyEmitter?.scene) this._honeyEmitter.destroy(); });
   }
 

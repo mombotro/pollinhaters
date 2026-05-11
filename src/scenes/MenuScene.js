@@ -75,18 +75,19 @@ export default class MenuScene extends Phaser.Scene {
 
     const add = obj => { objs.push(obj); return obj; };
 
-    add(this.add.rectangle(cx, cy, 760, 480, 0x000000, 0.93).setDepth(D));
-    add(this.add.text(cx, cy - 210, 'CONTROLS', {
+    add(this.add.rectangle(cx, cy, 1280, 720, 0x000000, 0.01).setDepth(D - 1).setInteractive());
+    add(this.add.rectangle(cx, cy, 760, 510, 0x000000, 0.93).setDepth(D));
+    add(this.add.text(cx, cy - 225, 'CONTROLS', {
       fontSize: '30px', color: '#ffd700', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(D));
 
     const s = { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' };
     const h = { ...s, color: '#ffdd44', fontSize: '19px', fontStyle: 'bold' };
-    const lh = 32, top = cy - 150;
-    const col1 = cx - 185, col2 = cx + 50;
+    const lh = 32, top = cy - 165;
+    const col1 = cx - 330, col2 = cx + 60;
 
     const kbLines = ['KEYBOARD', 'WASD / Arrows  —  Move', 'Space          —  Dash', 'Right-click    —  Aim', 'B              —  Build menu'];
-    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'D-pad          —  Menus'];
+    const gpLines = ['CONTROLLER', 'Left stick     —  Move', 'A button       —  Dash', 'Right stick    —  Aim', 'B button       —  Build menu', 'D-pad          —  Navigate'];
 
     kbLines.forEach((label, i) =>
       add(this.add.text(col1, top + i * lh, label, i === 0 ? h : s).setOrigin(0, 0.5).setDepth(D))

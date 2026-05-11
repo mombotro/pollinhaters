@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BEE } from '../constants.js';
+import SoundSynth from '../systems/SoundSynth.js';
 
 export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, onFire) {
@@ -122,6 +123,14 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     if (aDown && !this._gpAWasDown) this._touchDash = true;
     this._gpAWasDown = aDown;
 
+    // B button (index 1) → toggle build menu (rising edge)
+    const bDown = pad.buttons[1]?.pressed ?? false;
+    if (bDown && !this._gpBWasDown) {
+      const bm = this.scene.buildMenu;
+      if (bm) { if (bm.visible) bm.hide(); else bm.show(); }
+    }
+    this._gpBWasDown = bDown;
+
     // Right stick → aim (RT check removed: Phaser analog threshold unreliable)
     const rx = pad.rightStick.x;
     const ry = pad.rightStick.y;
@@ -164,7 +173,7 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     const spawnX = this.x + Math.cos(tailAngle) * offset;
     const spawnY = this.y + Math.sin(tailAngle) * offset;
     const fired = this._onFire(spawnX, spawnY, this._stingerRange, this._stingerDamage, this._stingerSpeed, tailAngle);
-    if (fired) this._lastFired = time;
+    if (fired) { this._lastFired = time; SoundSynth.play('shoot'); }
   }
 
   // Returns true if bee died
@@ -172,6 +181,7 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
     if (!this.alive || this.isDashing) return false;
     const actual = Math.max(1, amount - this.armor);
     this.hp = Math.max(0, this.hp - actual);
+    SoundSynth.play('player-hit');
     this.setTint(0xff4444);
     this.scene.time.delayedCall(150, () => { if (this.active) this.clearTint(); });
     if (this.hp <= 0) {

@@ -1,7 +1,10 @@
 const JOY_MAX_R = 70;
-const DASH_CX = 1150;
-const DASH_CY = 590;
-const DASH_R  = 55;
+const DASH_CX  = 1150;
+const DASH_CY  = 620;
+const DASH_R   = 50;
+const BUILD_CX = 1150;
+const BUILD_CY = 500;
+const BUILD_R  = 50;
 
 export default class TouchControls {
   constructor(scene, player) {
@@ -27,6 +30,9 @@ export default class TouchControls {
     this._label = scene.add.text(DASH_CX, DASH_CY, 'DASH', {
       fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0.75).setVisible(false);
+    this._buildLabel = scene.add.text(BUILD_CX, BUILD_CY, 'BUILD', {
+      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0.75).setVisible(false);
 
     scene.input.on('pointerdown',      this._onDown, this);
     scene.input.on('pointermove',      this._onMove, this);
@@ -40,6 +46,12 @@ export default class TouchControls {
     this._staticGfx.lineStyle(2, 0xffffff, 0.5);
     this._staticGfx.strokeCircle(DASH_CX, DASH_CY, DASH_R);
     this._label.setVisible(true);
+
+    this._staticGfx.fillStyle(0x44aaff, 0.45);
+    this._staticGfx.fillCircle(BUILD_CX, BUILD_CY, BUILD_R);
+    this._staticGfx.lineStyle(2, 0xffffff, 0.5);
+    this._staticGfx.strokeCircle(BUILD_CX, BUILD_CY, BUILD_R);
+    this._buildLabel.setVisible(true);
   }
 
   _onDown(ptr) {
@@ -54,6 +66,11 @@ export default class TouchControls {
         this._dashPtr = ptr;
         this._player._touchDash = true;
       }
+      return;
+    }
+    if (Math.hypot(x - BUILD_CX, y - BUILD_CY) <= BUILD_R) {
+      const bm = this._scene.buildMenu;
+      if (bm) { if (bm.visible) bm.hide(); else bm.show(); }
       return;
     }
     if (x < this._scene.scale.width * 0.55 && !this._joyPtr) {
@@ -144,5 +161,6 @@ export default class TouchControls {
     this._staticGfx.destroy();
     this._gfx.destroy();
     this._label.destroy();
+    this._buildLabel.destroy();
   }
 }

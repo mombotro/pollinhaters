@@ -28,6 +28,7 @@ import WebTrap from '../entities/WebTrap.js';
 import SoldierBee from '../entities/SoldierBee.js';
 import PoisonHoney from '../towers/PoisonHoney.js';
 import ArcherWasp from '../entities/ArcherWasp.js';
+import SoundSynth from '../systems/SoundSynth.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -162,12 +163,14 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.hive, () => {
       if (this.resources.getSapCarried('player') > 0) {
         this._burst(this.hive.x, this.hive.y, 0xffd700, 10);
+        SoundSynth.play('deposit');
         this.resources.depositSap('player');
       }
     });
 
     this.physics.add.overlap(this.player, this.pickups, (player, pickup) => {
       this._burst(pickup.x, pickup.y, 0xffff88, 6);
+      SoundSynth.play('pickup');
       pickup.onCollect(player, this);
     });
 
@@ -237,6 +240,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.stingers, this.wasps, (stinger, wasp) => {
       stinger.release();
+      SoundSynth.play('hit');
       if (wasp.takeDamage(stinger.damage)) {
         this._dropPickup(wasp.x, wasp.y, wasp.honeyCarried ? 'honey' : 'xp');
       }
@@ -310,10 +314,12 @@ export default class GameScene extends Phaser.Scene {
 
       if (this.resources.getHoney() > 0) {
         this._burst(hive.x, hive.y, 0xff8800, 8);
+        SoundSynth.play('hive-hit');
         this.resources.stealHoney(WASP.HONEY_STEAL);
         wasp.honeyCarried = WASP.HONEY_STEAL;
         wasp.retreat();
       } else {
+        SoundSynth.play('hive-hit');
         if (hive.takeDamage(WASP.DAMAGE)) this._endGame(false);
       }
     });
@@ -465,7 +471,7 @@ export default class GameScene extends Phaser.Scene {
       else this.buildMenu.show();
     }
     
-    if (Phaser.Input.Keyboard.JustDown(this._hKey)) {
+    if (this._playground && Phaser.Input.Keyboard.JustDown(this._hKey)) {
       this.resources.addPendingSap(100);
       this.resources.convertSap(100);
     }

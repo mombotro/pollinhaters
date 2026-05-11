@@ -59,6 +59,46 @@ export default class MetaUpgradeScene extends Phaser.Scene {
       this._rows.push({ def, nameText, descText, levelText, btn });
     });
 
+    const refundBtn = this.add.text(cx - 220, 670, '[ REFUND ALL ]', {
+      fontSize: '20px', color: '#ffaa00',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    refundBtn.on('pointerover', () => refundBtn.setColor('#ffffff'));
+    refundBtn.on('pointerout',  () => refundBtn.setColor('#ffaa00'));
+    refundBtn.on('pointerdown', () => {
+      const s = MetaSave.load();
+      UPGRADES.forEach(def => {
+        s.jellyBalance += (s.upgrades[def.key] ?? 0) * def.cost;
+        s.upgrades[def.key] = 0;
+      });
+      MetaSave.save(s);
+      this._refresh();
+    });
+
+    const resetBtn = this.add.text(cx + 220, 670, '[ RESET SAVE ]', {
+      fontSize: '20px', color: '#ff4444',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    resetBtn.on('pointerover', () => { if (!resetBtn._pending) resetBtn.setColor('#ff8888'); });
+    resetBtn.on('pointerout',  () => { if (!resetBtn._pending) resetBtn.setColor('#ff4444'); });
+    resetBtn.on('pointerdown', () => {
+      if (!resetBtn._pending) {
+        resetBtn._pending = true;
+        resetBtn.setText('[ CONFIRM? ]').setColor('#ff8888');
+        this.time.delayedCall(3000, () => {
+          if (resetBtn._pending) {
+            resetBtn._pending = false;
+            resetBtn.setText('[ RESET SAVE ]').setColor('#ff4444');
+          }
+        });
+      } else {
+        resetBtn._pending = false;
+        MetaSave.reset();
+        resetBtn.setText('[ RESET SAVE ]').setColor('#ff4444');
+        this._refresh();
+      }
+    });
+
     const backBtn = this.add.text(cx, 710, '[ BACK TO MENU ]', {
       fontSize: '28px', color: '#ffd700',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });

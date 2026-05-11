@@ -219,7 +219,9 @@ export default class GameScene extends Phaser.Scene {
     const _metaSave = MetaSave.load();
     const _u = _metaSave.upgrades;
 
-    this._runDuration = TIMER.RUN_DURATION - (_u.QUICK_RUN_META ?? 0) * 60000;
+    this._runDuration = TIMER.RUN_DURATION
+      - (_u.QUICK_RUN_META ?? 0) * 60000
+      + (_u.LONG_RUN_META  ?? 0) * 60000;
     this.waveManager = new WaveManager({
       firstWaveDelay: WAVE.FIRST_WAVE_DELAY,
       waveInterval: WAVE.WAVE_INTERVAL,

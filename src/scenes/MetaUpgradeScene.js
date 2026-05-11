@@ -12,9 +12,18 @@ const UPGRADES = [
   { key: 'START_GUARD',       label: 'Start: Guard',   cost: 200, max: 1, desc: 'Begin with 1 guard post' },
   { key: 'START_SOLDIER',     label: 'Start: Soldier', cost: 120, max: 1, desc: 'Begin with 1 soldier bee escort' },
   { key: 'SOLDIER_DMG_META',  label: 'Soldier Damage', cost: 100, max: 3, desc: '+1 soldier damage per level' },
-  { key: 'QUICK_RUN_META',   label: 'Quick Run',      cost: 50,  max: 3, desc: 'Survive 1 minute less per level (min 7 min)' },
-  { key: 'HARD_MODE_META',   label: 'Hard Mode',      cost: 75,  max: 3, desc: '+2 wasps per wave per level (self-challenge)' },
+  { key: 'QUICK_RUN_META',    label: 'Quick Run',      cost: 50,  max: 3, desc: 'Survive 1 minute less per level (min 7 min)' },
+  { key: 'LONG_RUN_META',     label: 'Longer Run',     cost: 75,  max: 3, desc: 'Survive 1 minute more per level (max 13 min)' },
+  { key: 'HARD_MODE_META',    label: 'Hard Mode',      cost: 75,  max: 3, desc: '+2 wasps per wave per level (self-challenge)' },
 ];
+
+const ROW_H    = 52;
+const SCROLL_TOP    = 145;
+const SCROLL_BOTTOM = 625;
+const SCROLL_H      = SCROLL_BOTTOM - SCROLL_TOP;
+const COL_NAME  = 180;
+const COL_LVL   = 720;
+const COL_BTN   = 940;
 
 export default class MetaUpgradeScene extends Phaser.Scene {
   constructor() { super('MetaUpgradeScene'); }
@@ -22,33 +31,41 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   create() {
     const cx = 640;
 
-    this.add.text(cx, 50, 'UPGRADES', {
-      fontSize: '48px', color: '#ffd700', fontStyle: 'bold',
+    this.add.text(cx, 45, 'UPGRADES', {
+      fontSize: '44px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this._jellyText = this.add.text(cx, 110, '', {
-      fontSize: '28px', color: '#ffcc00',
+    this._jellyText = this.add.text(cx, 100, '', {
+      fontSize: '26px', color: '#ffcc00',
     }).setOrigin(0.5);
+
+    // Scroll mask — clips the row area
+    const maskGfx = this.make.graphics({ add: false });
+    maskGfx.fillRect(0, SCROLL_TOP, 1280, SCROLL_H);
+    const scrollMask = maskGfx.createGeometryMask();
+
+    this._scrollY  = 0;
+    this._maxScroll = Math.max(0, UPGRADES.length * ROW_H - SCROLL_H);
 
     this._rows = [];
     UPGRADES.forEach((def, i) => {
-      const y = 155 + i * 54;
+      const baseY = SCROLL_TOP + i * ROW_H + ROW_H / 2;
 
-      const nameText = this.add.text(200, y, def.label, {
-        fontSize: '22px', color: '#ffffff',
-      }).setOrigin(0, 0.5);
+      const nameText = this.add.text(COL_NAME, baseY, def.label, {
+        fontSize: '21px', color: '#ffffff',
+      }).setOrigin(0, 0.5).setMask(scrollMask);
 
-      const descText = this.add.text(200, y + 18, def.desc, {
-        fontSize: '14px', color: '#aaaaaa',
-      }).setOrigin(0, 0.5);
+      const descText = this.add.text(COL_NAME, baseY + 16, def.desc, {
+        fontSize: '13px', color: '#888888',
+      }).setOrigin(0, 0.5).setMask(scrollMask);
 
-      const levelText = this.add.text(700, y, '', {
-        fontSize: '22px', color: '#ffffff',
-      }).setOrigin(0.5, 0.5);
+      const levelText = this.add.text(COL_LVL, baseY, '', {
+        fontSize: '21px', color: '#cccccc',
+      }).setOrigin(0.5, 0.5).setMask(scrollMask);
 
-      const btn = this.add.text(900, y, '', {
-        fontSize: '22px', color: '#ffd700',
-      }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+      const btn = this.add.text(COL_BTN, baseY, '', {
+        fontSize: '19px', color: '#ffd700',
+      }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true }).setMask(scrollMask);
 
       btn.on('pointerover', () => { if (btn._enabled) btn.setColor('#ffffff'); });
       btn.on('pointerout',  () => { if (btn._enabled) btn.setColor('#ffd700'); });
@@ -58,38 +75,53 @@ export default class MetaUpgradeScene extends Phaser.Scene {
         this._refresh();
       });
 
-      this._rows.push({ def, nameText, descText, levelText, btn });
+      this._rows.push({ def, nameText, descText, levelText, btn, baseY });
     });
 
-    this._refundBtn = this.add.text(cx - 220, 670, '[ REFUND ALL ]', {
+    // Scroll arrows (fixed, above/below viewport)
+    this._arrowUp   = this.add.text(cx, SCROLL_TOP - 14, '▲', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
+    this._arrowDown = this.add.text(cx, SCROLL_BOTTOM + 14, '▼', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
+
+    // Separator lines
+    const sepGfx = this.add.graphics();
+    sepGfx.lineStyle(1, 0x444444, 1);
+    sepGfx.lineBetween(100, SCROLL_TOP - 1, 1180, SCROLL_TOP - 1);
+    sepGfx.lineBetween(100, SCROLL_BOTTOM + 1, 1180, SCROLL_BOTTOM + 1);
+
+    // Footer buttons (fixed)
+    this._refundBtn = this.add.text(cx - 220, 660, '[ REFUND ALL ]', {
       fontSize: '20px', color: '#ffaa00',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
     this._refundBtn.on('pointerover', () => this._refundBtn.setColor('#ffffff'));
     this._refundBtn.on('pointerout',  () => this._refundBtn.setColor('#ffaa00'));
     this._refundBtn.on('pointerdown', () => this._doRefund());
 
-    this._resetBtn = this.add.text(cx + 220, 670, '[ RESET SAVE ]', {
+    this._resetBtn = this.add.text(cx + 220, 660, '[ RESET SAVE ]', {
       fontSize: '20px', color: '#ff4444',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
     this._resetBtn.on('pointerover', () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff8888'); });
     this._resetBtn.on('pointerout',  () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff4444'); });
     this._resetBtn.on('pointerdown', () => this._doReset());
 
-    this._backBtn = this.add.text(cx, 710, '[ BACK TO MENU ]', {
-      fontSize: '28px', color: '#ffd700',
+    this._backBtn = this.add.text(cx, 703, '[ BACK TO MENU ]', {
+      fontSize: '26px', color: '#ffd700',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
     this._backBtn.on('pointerover', () => this._backBtn.setColor('#ffffff'));
     this._backBtn.on('pointerout',  () => this._backBtn.setColor('#ffd700'));
     this._backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
 
-    // Gamepad nav: rows 0-9, refund=10, reset=11, back=12
+    // Mouse wheel scroll
+    this.input.on('wheel', (_ptr, _objs, _dx, deltaY) => {
+      this._doScroll(deltaY > 0 ? 48 : -48);
+    });
+
+    // Gamepad nav arrays
     this._navObjs    = [...this._rows.map(r => r.nameText), this._refundBtn, this._resetBtn, this._backBtn];
     this._navColors  = [...this._rows.map(() => '#ffffff'), '#ffaa00', '#ff4444', '#ffd700'];
     this._navActions = [
-      ...this._rows.map(r => () => { if (r.btn._enabled) { MetaSave.purchaseUpgrade(r.def.key, r.def.cost); this._refresh(); } }),
+      ...this._rows.map(r => () => {
+        if (r.btn._enabled) { MetaSave.purchaseUpgrade(r.def.key, r.def.cost); this._refresh(); }
+      }),
       () => this._doRefund(),
       () => this._doReset(),
       () => this.scene.start('MenuScene'),
@@ -100,6 +132,38 @@ export default class MetaUpgradeScene extends Phaser.Scene {
     this._gpDirWas = true;
 
     this._refresh();
+  }
+
+  _doScroll(dy) {
+    this._scrollY = Phaser.Math.Clamp(this._scrollY + dy, 0, this._maxScroll);
+    this._repositionRows();
+    this._updateArrows();
+  }
+
+  _repositionRows() {
+    this._rows.forEach((row, i) => {
+      const y = SCROLL_TOP + i * ROW_H + ROW_H / 2 - this._scrollY;
+      row.nameText.setY(y);
+      row.descText.setY(y + 16);
+      row.levelText.setY(y);
+      row.btn.setY(y);
+    });
+  }
+
+  _updateArrows() {
+    this._arrowUp.setAlpha(this._scrollY > 0 ? 1 : 0.2);
+    this._arrowDown.setAlpha(this._scrollY < this._maxScroll ? 1 : 0.2);
+  }
+
+  _ensureVisible(rowIdx) {
+    if (rowIdx >= this._rows.length) return;
+    const rowTop = rowIdx * ROW_H;
+    const rowBot = rowTop + ROW_H;
+    if (rowTop < this._scrollY) {
+      this._doScroll(rowTop - this._scrollY);
+    } else if (rowBot > this._scrollY + SCROLL_H) {
+      this._doScroll(rowBot - (this._scrollY + SCROLL_H));
+    }
   }
 
   _doRefund() {
@@ -134,7 +198,6 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   _refresh() {
     const s = MetaSave.load();
     this._jellyText.setText(`Royal Jelly: ${s.jellyBalance}`);
-
     this._rows.forEach(({ def, levelText, btn }) => {
       const level = s.upgrades[def.key] ?? 0;
       const maxed = level >= def.max;
@@ -152,6 +215,7 @@ export default class MetaUpgradeScene extends Phaser.Scene {
       }
     });
     this._gpRefresh();
+    this._updateArrows();
   }
 
   _gpRefresh() {
@@ -172,6 +236,7 @@ export default class MetaUpgradeScene extends Phaser.Scene {
       const dy = (pad.buttons[12]?.pressed || pad.leftStick.y < -0.4) ? -1 : 1;
       this._gpIdx = (this._gpIdx + dy + this._navObjs.length) % this._navObjs.length;
       this._gpRefresh();
+      if (this._gpIdx < this._rows.length) this._ensureVisible(this._gpIdx);
     }
     this._gpDirWas = dirDown;
 

@@ -354,6 +354,7 @@ export default class GameScene extends Phaser.Scene {
     this._ghost = null;
 
     this.buildMenu = new BuildMenu(this, (key) => {
+      if (this.player) this.player._gpAWasDown = true;
       if (key === 'recruit-worker') {
         this._recruitWorker();
       } else if (key === 'recruit-soldier') {

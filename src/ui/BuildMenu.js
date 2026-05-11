@@ -63,9 +63,10 @@ export default class BuildMenu {
   }
 
   gpUpdate(pad) {
-    const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed;
+    const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed ||
+                    Math.abs(pad.leftStick.y) > 0.4;
     if (dirDown && !this._gpDirWas) {
-      const dy = pad.buttons[12]?.pressed ? -1 : 1;
+      const dy = (pad.buttons[12]?.pressed || pad.leftStick.y < -0.4) ? -1 : 1;
       this._gpIdx = (this._gpIdx + dy + this._buttons.length) % this._buttons.length;
       this._gpRefresh();
     }

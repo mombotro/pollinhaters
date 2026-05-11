@@ -112,6 +112,7 @@ export default class RaiderWasp extends Phaser.Physics.Arcade.Sprite {
   }
 
   _separate() {
+    if (!this.scene?.wasps) return;
     const RADIUS = 64, FORCE = 400;
     let sx = 0, sy = 0;
     this.scene.wasps.getChildren().forEach(other => {

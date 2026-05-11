@@ -421,6 +421,30 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Gamepad ghost placement
+    if (this._placing && _pad) {
+      const DEAD = 0.15, SPEED = 600;
+      const rx = Math.abs(_pad.rightStick.x) > DEAD ? _pad.rightStick.x : 0;
+      const ry = Math.abs(_pad.rightStick.y) > DEAD ? _pad.rightStick.y : 0;
+      if (this._ghost && (rx !== 0 || ry !== 0)) {
+        this._ghost.x = Phaser.Math.Clamp(this._ghost.x + rx * SPEED * (delta / 1000), 0, WORLD.WIDTH);
+        this._ghost.y = Phaser.Math.Clamp(this._ghost.y + ry * SPEED * (delta / 1000), 0, WORLD.HEIGHT);
+      }
+      const aDown = _pad.buttons[0]?.pressed ?? false;
+      if (aDown && !this._gpPlaceAWas) {
+        if (this._ghost) this._placeTower(this._placing, this._ghost.x, this._ghost.y);
+        this._cancelPlacement();
+        if (this.player) this.player._gpAWasDown = true;
+      }
+      this._gpPlaceAWas = aDown;
+      const bDown = _pad.buttons[1]?.pressed ?? false;
+      if (bDown && !this._gpPlaceBWas) {
+        this._cancelPlacement();
+        if (this.player) { this.player._gpBWasDown = true; this.player._gpAWasDown = true; }
+      }
+      this._gpPlaceBWas = bDown;
+    }
+
     // Wind computed first so wasps can counter it when they have no target
     this.wind.update(this._gameTime);
     const windVec = this.wind.getVector();
@@ -816,7 +840,15 @@ export default class GameScene extends Phaser.Scene {
       'poison-honey': { key: 'misc', frame: 9, scale: 0.08 },
     };
     const gi = ghostMap[towerKey] || { key: towerKey, frame: 0, scale: 1 };
-    this._ghost = this.add.image(0, 0, gi.key, gi.frame).setAlpha(0.5).setDepth(50).setScale(gi.scale);
+    const startX = this.player ? this.player.x : this.cameras.main.scrollX + 640;
+    const startY = this.player ? this.player.y : this.cameras.main.scrollY + 360;
+    this._ghost = this.add.image(startX, startY, gi.key, gi.frame).setAlpha(0.5).setDepth(50).setScale(gi.scale);
+    this._gpPlaceAWas = true;
+    this._gpPlaceBWas = true;
+    this._placeHint = this.add.text(640, 30,
+      'Right stick: move  |  A: place  |  B: cancel',
+      { fontSize: '16px', color: '#ffff88', stroke: '#000', strokeThickness: 3 }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
     this.input.on('pointermove', this._onPlacementMove, this);
     this.input.once('pointerdown', this._onPlacementPlace, this);
     this.input.keyboard.addKey('ESC').once('down', () => this._cancelPlacement());
@@ -838,6 +870,7 @@ export default class GameScene extends Phaser.Scene {
 
   _cancelPlacement() {
     if (this._ghost) { this._ghost.destroy(); this._ghost = null; }
+    if (this._placeHint) { this._placeHint.destroy(); this._placeHint = null; }
     this._placing = null;
     this.input.off('pointermove', this._onPlacementMove, this);
     this.input.off('pointerdown', this._onPlacementPlace, this);

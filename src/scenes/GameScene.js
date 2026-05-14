@@ -35,8 +35,8 @@ export default class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   init(data = {}) {
-    this.hiveX = data.hiveX ?? 2560;
-    this.hiveY = data.hiveY ?? 1440;
+    this.hiveX = data.hiveX ?? 1920;
+    this.hiveY = data.hiveY ?? 1080;
     this._ended = false;
     this._gameTime = 0;
     this._playTime = 0;
@@ -64,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
     borderGfx.fillRect(WORLD.WIDTH - BT, 0, BT, WORLD.HEIGHT);
 
     this._decoList = [];
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 400; i++) {
       const x = Phaser.Math.Between(0, WORLD.WIDTH);
       const y = Phaser.Math.Between(0, WORLD.HEIGHT);
       const frame = Phaser.Math.Between(0, 6);
@@ -377,7 +377,7 @@ export default class GameScene extends Phaser.Scene {
       } else {
         this._enterPlacementMode(key);
       }
-    });
+    }, () => this.resources.getHoney());
 
     this.levelUpMenu = new LevelUpMenu(this, (key) => {
       if (this.upgrades.purchase(key)) {

@@ -1,10 +1,10 @@
 import { TOWER, WORKER, SOLDIER, NECTAR_FOUNTAIN } from '../constants.js';
 
-
 export default class BuildMenu {
-  constructor(scene, onSelect) {
-    this._scene = scene;
+  constructor(scene, onSelect, getHoney) {
+    this._scene    = scene;
     this._onSelect = onSelect;
+    this._getHoney = getHoney;
 
     const s  = { fontSize: '17px', color: '#ffd700', stroke: '#000', strokeThickness: 3 };
     const hs = { ...s, fontSize: '20px', color: '#ffffff' };
@@ -16,21 +16,23 @@ export default class BuildMenu {
       .setOrigin(0.5, 0).setScrollFactor(0).setDepth(201);
 
     this._items = [
-      { key: 'resin-trap',      label: `Resin Trap  ${TOWER.RESIN_TRAP_COST}h`     },
-      { key: 'guard-post',      label: `Guard Post  ${TOWER.GUARD_POST_COST}h`     },
-      { key: 'poison-honey',    label: `Poison Honey  ${TOWER.POISON_HONEY_COST}h` },
-      { key: 'nectar-fountain',  label: `Nectar Fountain  ${NECTAR_FOUNTAIN.COST}h` },
-      { key: 'recruit-worker',  label: `Recruit Worker  ${WORKER.COST}h`           },
-      { key: 'recruit-soldier', label: `Recruit Soldier  ${SOLDIER.COST}h`         },
+      { key: 'resin-trap',      cost: TOWER.RESIN_TRAP_COST,    label: `Resin Trap  ${TOWER.RESIN_TRAP_COST}h`      },
+      { key: 'guard-post',      cost: TOWER.GUARD_POST_COST,    label: `Guard Post  ${TOWER.GUARD_POST_COST}h`      },
+      { key: 'poison-honey',    cost: TOWER.POISON_HONEY_COST,  label: `Poison Honey  ${TOWER.POISON_HONEY_COST}h`  },
+      { key: 'nectar-fountain', cost: NECTAR_FOUNTAIN.COST,     label: `Nectar Fountain  ${NECTAR_FOUNTAIN.COST}h`  },
+      { key: 'recruit-worker',  cost: WORKER.COST,              label: `Recruit Worker  ${WORKER.COST}h`            },
+      { key: 'recruit-soldier', cost: SOLDIER.COST,             label: `Recruit Soldier  ${SOLDIER.COST}h`          },
     ];
 
     this._buttons = this._items.map((item, i) => {
       const btn = scene.add.text(640, 310 + i * 36, item.label, s)
         .setOrigin(0.5, 0).setScrollFactor(0).setDepth(201).setInteractive();
-      btn.on('pointerover',  () => btn.setColor('#ffffff'));
-      btn.on('pointerout',   () => btn.setColor('#ffd700'));
-      btn.on('pointerdown',  (pointer, localX, localY, event) => {
+      btn._enabled = true;
+      btn.on('pointerover', () => { if (btn._enabled) btn.setColor('#ffffff'); });
+      btn.on('pointerout',  () => this._gpRefresh());
+      btn.on('pointerdown', (pointer, localX, localY, event) => {
         event.stopPropagation();
+        if (!btn._enabled) return;
         this._onSelect(item.key);
         this.hide();
       });
@@ -49,6 +51,7 @@ export default class BuildMenu {
     this._visible = true;
     this._gpIdx = 0;
     [this._bg, this._title, ...this._buttons].forEach(o => o.setVisible(true));
+    this._refreshAffordability();
     this._gpRefresh();
   }
 
@@ -59,8 +62,21 @@ export default class BuildMenu {
 
   get visible() { return this._visible; }
 
+  _refreshAffordability() {
+    if (!this._getHoney) return;
+    const honey = this._getHoney();
+    this._items.forEach((item, i) => {
+      this._buttons[i]._enabled = honey >= item.cost;
+    });
+  }
+
   _gpRefresh() {
-    this._buttons.forEach((b, i) => b.setColor(i === this._gpIdx ? '#ffffff' : '#ffd700'));
+    this._refreshAffordability();
+    this._buttons.forEach((b, i) => {
+      if (i === this._gpIdx)  b.setColor('#ffffff');
+      else if (!b._enabled)   b.setColor('#555555');
+      else                    b.setColor('#ffd700');
+    });
   }
 
   gpUpdate(pad) {
@@ -75,8 +91,10 @@ export default class BuildMenu {
 
     const aDown = pad.buttons[0]?.pressed ?? false;
     if (aDown && !this._gpAWas) {
-      this._onSelect(this._items[this._gpIdx].key);
-      this.hide();
+      if (this._buttons[this._gpIdx]._enabled) {
+        this._onSelect(this._items[this._gpIdx].key);
+        this.hide();
+      }
     }
     this._gpAWas = aDown;
 

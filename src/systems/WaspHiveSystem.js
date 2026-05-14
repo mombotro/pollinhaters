@@ -122,11 +122,13 @@ export default class WaspHiveSystem {
 
       for (let i = 0; i < raiderCount; i++) {
         const { x: wx, y: wy } = jitter();
-        const guardPosts = this._scene._towerList
-          ? this._scene._towerList.filter(t => t.towerType === 'guard' && t.active && t.hp > 0)
+        const priorityTargets = this._scene._towerList
+          ? this._scene._towerList.filter(t =>
+              (t.towerType === 'guard' && t.active && t.hp > 0) ||
+              (t.towerType === 'nectar-fountain' && t.hp > 0))
           : [];
-        const target = guardPosts.length > 0 && Math.random() < 0.4
-          ? Phaser.Utils.Array.GetRandom(guardPosts)
+        const target = priorityTargets.length > 0 && Math.random() < 0.45
+          ? Phaser.Utils.Array.GetRandom(priorityTargets)
           : this._scene.hive;
         const w = new RaiderWasp(this._scene, wx, wy, this._scene.hive, target, h);
         if (Math.random() < pc) { w.hp = 2; w._speedMult = 1.25; }

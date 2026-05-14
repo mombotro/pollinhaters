@@ -1,4 +1,4 @@
-import { TOWER, WORKER, SOLDIER } from '../constants.js';
+import { TOWER, WORKER, SOLDIER, NECTAR_FOUNTAIN } from '../constants.js';
 
 
 export default class BuildMenu {
@@ -9,7 +9,7 @@ export default class BuildMenu {
     const s  = { fontSize: '17px', color: '#ffd700', stroke: '#000', strokeThickness: 3 };
     const hs = { ...s, fontSize: '20px', color: '#ffffff' };
 
-    this._bg = scene.add.rectangle(640, 380, 440, 306, 0x000000, 0.85)
+    this._bg = scene.add.rectangle(640, 380, 440, 342, 0x000000, 0.85)
       .setScrollFactor(0).setDepth(200);
 
     this._title = scene.add.text(640, 270, 'BUILD  (B to close)', hs)
@@ -19,6 +19,7 @@ export default class BuildMenu {
       { key: 'resin-trap',      label: `Resin Trap  ${TOWER.RESIN_TRAP_COST}h`     },
       { key: 'guard-post',      label: `Guard Post  ${TOWER.GUARD_POST_COST}h`     },
       { key: 'poison-honey',    label: `Poison Honey  ${TOWER.POISON_HONEY_COST}h` },
+      { key: 'nectar-fountain',  label: `Nectar Fountain  ${NECTAR_FOUNTAIN.COST}h` },
       { key: 'recruit-worker',  label: `Recruit Worker  ${WORKER.COST}h`           },
       { key: 'recruit-soldier', label: `Recruit Soldier  ${SOLDIER.COST}h`         },
     ];

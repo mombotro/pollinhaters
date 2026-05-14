@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BUTTERFLY, FLOWER } from '../constants.js';
+import { BUTTERFLY, WORLD } from '../constants.js';
 
 export default class Butterfly extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
@@ -10,24 +10,45 @@ export default class Butterfly extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
     this._angle    = Math.random() * Math.PI * 2;
     this._nextTurn = 0;
+    this._fountain = null;
   }
 
   update(time, delta, player, pollination, flowers) {
+    // Pick new wander direction
     if (time > this._nextTurn) {
-      this._angle    = Math.random() * Math.PI * 2;
-      this._nextTurn = time + BUTTERFLY.DIRECTION_CHANGE + Phaser.Math.Between(-500, 500);
+      if (this._fountain && this._fountain.hp > 0) {
+        const dist = Phaser.Math.Distance.Between(this.x, this.y, this._fountain.x, this._fountain.y);
+        if (dist > BUTTERFLY.FOUNTAIN_WANDER_RADIUS) {
+          this._angle = Phaser.Math.Angle.Between(this.x, this.y, this._fountain.x, this._fountain.y);
+        } else {
+          this._angle = Math.random() * Math.PI * 2;
+        }
+      } else {
+        this._fountain = null;
+        this._angle = Math.random() * Math.PI * 2;
+      }
+      this._nextTurn = time + BUTTERFLY.DIRECTION_CHANGE + Phaser.Math.Between(-1500, 1500);
     }
 
+    // Flee player
     if (player.alive) {
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
-      if (dist < BUTTERFLY.FLEE_RADIUS) {
-        this._angle    = Phaser.Math.Angle.Between(player.x, player.y, this.x, this.y);
+      const d = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+      if (d < BUTTERFLY.FLEE_RADIUS) {
+        this._angle = Phaser.Math.Angle.Between(player.x, player.y, this.x, this.y);
         this._nextTurn = time + 1200;
-      } else {
-        this._seekAromatic(flowers);
       }
-    } else {
-      this._seekAromatic(flowers);
+    }
+
+    // Flee wasps (only when no fountain)
+    if (!this._fountain && this.scene?.wasps) {
+      this.scene.wasps.getChildren().forEach(w => {
+        if (!w.active) return;
+        const d = Phaser.Math.Distance.Between(this.x, this.y, w.x, w.y);
+        if (d < BUTTERFLY.FLEE_WASP_RADIUS) {
+          this._angle = Phaser.Math.Angle.Between(w.x, w.y, this.x, this.y);
+          this._nextTurn = time + 1500;
+        }
+      });
     }
 
     this.setVelocity(
@@ -35,7 +56,7 @@ export default class Butterfly extends Phaser.Physics.Arcade.Sprite {
       Math.sin(this._angle) * BUTTERFLY.SPEED,
     );
 
-    // Pollinate + boost nearby flowers in one pass
+    // Pollinate + boost nearby flowers
     flowers.getChildren().forEach(flower => {
       if (!flower.active) return;
       const d = Phaser.Math.Distance.Between(this.x, this.y, flower.x, flower.y);
@@ -47,17 +68,5 @@ export default class Butterfly extends Phaser.Physics.Arcade.Sprite {
         flower.receiveButterflyBoost(delta);
       }
     });
-  }
-
-  _seekAromatic(flowers) {
-    let nearest = null, nearestDist = FLOWER.AROMATIC_RADIUS;
-    flowers.getChildren().forEach(f => {
-      if (!f.active || f.flowerType !== 'AROMATIC' || f.lifecycle !== 'mature') return;
-      const d = Phaser.Math.Distance.Between(this.x, this.y, f.x, f.y);
-      if (d < nearestDist) { nearest = f; nearestDist = d; }
-    });
-    if (nearest) {
-      this._angle = Phaser.Math.Angle.Between(this.x, this.y, nearest.x, nearest.y);
-    }
   }
 }

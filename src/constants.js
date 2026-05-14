@@ -1,6 +1,6 @@
 export const WORLD = {
-  WIDTH: 2560,
-  HEIGHT: 1440,
+  WIDTH: 5120,
+  HEIGHT: 2880,
 };
 
 export const BEE = {
@@ -44,7 +44,7 @@ export const WAVE = {
 export const FLOWER = {
   POLLINATION_RADIUS: 150,
   SPAWN_DELAY: 6000,
-  INITIAL_COUNT: 20,
+  INITIAL_COUNT: 60,
   YOUNG_DURATION:  3000,   // ms in YOUNG state before sap is collectible
   OLD_DURATION:    5000,   // ms in OLD state before flower dies
   RESPAWN_DELAY:  10000,   // ms after death before a new flower spawns elsewhere
@@ -108,12 +108,19 @@ export const XP = {
   WASP_KILL: 2,       // XP dropped per wasp
 };
 export const BUTTERFLY = {
-  SPEED: 60,
-  COUNT: 4,              // spawned at run start
-  FLEE_RADIUS: 150,      // runs from player if closer than this
-  DIRECTION_CHANGE: 3000, // ms between random direction changes
-  BOOST_RADIUS: 80,      // radius within which butterfly boosts nearby flowers
-  POLLINATE_RADIUS: 50,  // radius for auto-pollination (was 26)
+  SPEED: 100,
+  COUNT: 6,
+  FLEE_RADIUS: 200,
+  FLEE_WASP_RADIUS: 280,
+  DIRECTION_CHANGE: 5000,
+  BOOST_RADIUS: 150,
+  POLLINATE_RADIUS: 70,
+  FOUNTAIN_WANDER_RADIUS: 500,
+};
+
+export const NECTAR_FOUNTAIN = {
+  HP: 5,
+  COST: 80,
 };
 
 export const SPIDER = {

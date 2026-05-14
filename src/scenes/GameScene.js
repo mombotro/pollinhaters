@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WORLD, BEE, HIVE, WASP, WAVE, FLOWER, TIMER, WORKER, TOWER, XP, BUTTERFLY, SPIDER, WEB, WIND, BREAKABLE, SOLDIER, PICKUP, pickFlowerType } from '../constants.js';
+import { WORLD, BEE, HIVE, WASP, WAVE, FLOWER, TIMER, WORKER, TOWER, XP, BUTTERFLY, SPIDER, WEB, WIND, BREAKABLE, SOLDIER, PICKUP, NECTAR_FOUNTAIN, pickFlowerType } from '../constants.js';
 import MetaSave from '../systems/MetaSave.js';
 import Flower from '../entities/Flower.js';
 import Hive from '../entities/Hive.js';
@@ -28,14 +28,15 @@ import WebTrap from '../entities/WebTrap.js';
 import SoldierBee from '../entities/SoldierBee.js';
 import PoisonHoney from '../towers/PoisonHoney.js';
 import ArcherWasp from '../entities/ArcherWasp.js';
+import NectarFountain from '../entities/NectarFountain.js';
 import SoundSynth from '../systems/SoundSynth.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   init(data = {}) {
-    this.hiveX = data.hiveX ?? 1280;
-    this.hiveY = data.hiveY ?? 720;
+    this.hiveX = data.hiveX ?? 2560;
+    this.hiveY = data.hiveY ?? 1440;
     this._ended = false;
     this._gameTime = 0;
     this._playTime = 0;
@@ -63,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
     borderGfx.fillRect(WORLD.WIDTH - BT, 0, BT, WORLD.HEIGHT);
 
     this._decoList = [];
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 600; i++) {
       const x = Phaser.Math.Between(0, WORLD.WIDTH);
       const y = Phaser.Math.Between(0, WORLD.HEIGHT);
       const frame = Phaser.Math.Between(0, 6);
@@ -416,18 +417,24 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Build menu or placement — freeze game, handle only those inputs
-    if (this.buildMenu.visible || this._placing !== null) {
+    // Build menu — freeze game
+    if (this.buildMenu.visible) {
       this.physics.world.pause();
-      if (_pad && this.buildMenu.visible) this.buildMenu.gpUpdate(_pad);
-      if (this._placing && _pad) {
-        const DEAD = 0.15, SPEED = 600;
-        const rx = Math.abs(_pad.rightStick.x) > DEAD ? _pad.rightStick.x : 0;
-        const ry = Math.abs(_pad.rightStick.y) > DEAD ? _pad.rightStick.y : 0;
-        if (this._ghost && (rx !== 0 || ry !== 0)) {
-          this._ghost.x = Phaser.Math.Clamp(this._ghost.x + rx * SPEED * (delta / 1000), 0, WORLD.WIDTH);
-          this._ghost.y = Phaser.Math.Clamp(this._ghost.y + ry * SPEED * (delta / 1000), 0, WORLD.HEIGHT);
-        }
+      if (_pad) this.buildMenu.gpUpdate(_pad);
+      this._touchControls.update();
+      return;
+    }
+
+    this.physics.world.resume();
+    this.physics.world.timeScale = 1;
+    this.time.timeScale = 1;
+
+    // Placement mode — game runs, ghost follows player for controller
+    if (this._placing !== null) {
+      if (this._ghost && this.player) {
+        this._ghost.setPosition(this.player.x + 70, this.player.y);
+      }
+      if (_pad) {
         const aDown = _pad.buttons[0]?.pressed ?? false;
         if (aDown && !this._gpPlaceAWas) {
           if (this._ghost) this._placeTower(this._placing, this._ghost.x, this._ghost.y);
@@ -441,13 +448,7 @@ export default class GameScene extends Phaser.Scene {
         }
         this._gpPlaceBWas = bDown;
       }
-      this._touchControls.update();
-      return;
     }
-
-    this.physics.world.resume();
-    this.physics.world.timeScale = 1;
-    this.time.timeScale = 1;
 
     const scaledDelta = delta;
     this._gameTime += scaledDelta;
@@ -733,6 +734,12 @@ export default class GameScene extends Phaser.Scene {
     const type = pickFlowerType(Phaser.Math.Between(1, 100));
     const f = new Flower(this, x, y, type, initialBloom);
     f.onDead = () => {
+      const fx = f.x, fy = f.y;
+      this.add.image(fx, fy, 'grass-deco', Phaser.Math.Between(0, 6))
+        .setScale(Phaser.Math.FloatBetween(0.08, 0.12))
+        .setAlpha(0.85)
+        .setFlipX(Math.random() < 0.5)
+        .setCrop(4, 4, 392, 392);
       this.time.delayedCall(FLOWER.RESPAWN_DELAY, () => {
         if (!this._ended) {
           const rx = Phaser.Math.Between(100, WORLD.WIDTH - 100);
@@ -826,10 +833,17 @@ export default class GameScene extends Phaser.Scene {
       if (!wasp.active || wasp.waspType !== 'raider' || wasp.isRetreating) return;
       if (time - wasp.lastHit < WASP.HIT_COOLDOWN) return;
       this._towerList.forEach(tower => {
-        if (!tower.active || tower.towerType !== 'guard' || tower.hp <= 0) return;
-        if (Phaser.Math.Distance.Between(wasp.x, wasp.y, tower.x, tower.y) > 32) return;
+        if (tower.hp <= 0) return;
+        if (tower.towerType === 'guard' && !tower.active) return;
+        if (tower.towerType !== 'guard' && tower.towerType !== 'nectar-fountain') return;
+        if (Phaser.Math.Distance.Between(wasp.x, wasp.y, tower.x, tower.y) > 40) return;
         wasp.lastHit = time;
-        tower.takeDamage(WASP.DAMAGE);
+        if (tower.takeDamage(WASP.DAMAGE) && tower.towerType === 'nectar-fountain') {
+          // Clear butterfly fountain refs when destroyed
+          this.butterflies.getChildren().forEach(b => {
+            if (b._fountain === tower) b._fountain = null;
+          });
+        }
         wasp.retreat();
       });
     });
@@ -853,30 +867,23 @@ export default class GameScene extends Phaser.Scene {
   _enterPlacementMode(towerKey) {
     this._placing = towerKey;
     const ghostMap = {
-      'guard-post':   { key: 'misc', frame: 0, scale: 0.1  },
-      'resin-trap':   { key: 'misc', frame: 8, scale: 0.1  },
-      'poison-honey': { key: 'misc', frame: 9, scale: 0.08 },
+      'guard-post':      { key: 'misc',           frame: 0, scale: 0.1  },
+      'resin-trap':      { key: 'misc',           frame: 8, scale: 0.1  },
+      'poison-honey':    { key: 'misc',           frame: 9, scale: 0.08 },
+      'nectar-fountain': { key: 'nectar-fountain', frame: 0, scale: 0.25 },
     };
     const gi = ghostMap[towerKey] || { key: towerKey, frame: 0, scale: 1 };
-    const startX = this.player ? this.player.x : this.cameras.main.scrollX + 640;
+    const startX = this.player ? this.player.x + 70 : this.cameras.main.scrollX + 640;
     const startY = this.player ? this.player.y : this.cameras.main.scrollY + 360;
     this._ghost = this.add.image(startX, startY, gi.key, gi.frame).setAlpha(0.5).setDepth(50).setScale(gi.scale);
     this._gpPlaceAWas = true;
     this._gpPlaceBWas = true;
     this._placeHint = this.add.text(640, 30,
-      'Right stick: move  |  A: place  |  B: cancel',
+      'A / Click: place  |  B / ESC: cancel',
       { fontSize: '16px', color: '#ffff88', stroke: '#000', strokeThickness: 3 }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
-    this.input.on('pointermove', this._onPlacementMove, this);
     this.input.once('pointerdown', this._onPlacementPlace, this);
     this.input.keyboard.addKey('ESC').once('down', () => this._cancelPlacement());
-  }
-
-  _onPlacementMove(pointer) {
-    if (!this._ghost) return;
-    const wx = this.cameras.main.scrollX + pointer.x;
-    const wy = this.cameras.main.scrollY + pointer.y;
-    this._ghost.setPosition(wx, wy);
   }
 
   _onPlacementPlace(pointer) {
@@ -891,22 +898,36 @@ export default class GameScene extends Phaser.Scene {
     if (this._placeHint) { this._placeHint.destroy(); this._placeHint = null; }
     this._placing = null;
     if (this.player) this.player._gpAWasDown = true;
-    this.input.off('pointermove', this._onPlacementMove, this);
     this.input.off('pointerdown', this._onPlacementPlace, this);
   }
 
   _placeTower(key, x, y) {
     const costs = {
-      'resin-trap':   TOWER.RESIN_TRAP_COST,
-      'guard-post':   TOWER.GUARD_POST_COST,
-      'poison-honey': TOWER.POISON_HONEY_COST,
+      'resin-trap':      TOWER.RESIN_TRAP_COST,
+      'guard-post':      TOWER.GUARD_POST_COST,
+      'poison-honey':    TOWER.POISON_HONEY_COST,
+      'nectar-fountain': NECTAR_FOUNTAIN.COST,
     };
     if (!this.resources.spendHoney(costs[key])) return;
     let tower;
     if (key === 'resin-trap') tower = new ResinTrap(this, x, y);
     else if (key === 'guard-post') tower = new GuardPost(this, x, y);
     else if (key === 'poison-honey') tower = new PoisonHoney(this, x, y);
+    else if (key === 'nectar-fountain') {
+      tower = new NectarFountain(this, x, y);
+      this._assignFountainButterfly(tower);
+    }
     if (tower) this._towerList.push(tower);
+  }
+
+  _assignFountainButterfly(fountain) {
+    let closest = null, closestDist = Infinity;
+    this.butterflies.getChildren().forEach(b => {
+      if (!b.active || b._fountain) return;
+      const d = Phaser.Math.Distance.Between(b.x, b.y, fountain.x, fountain.y);
+      if (d < closestDist) { closest = b; closestDist = d; }
+    });
+    if (closest) closest._fountain = fountain;
   }
 
   _applyUpgrade(key) {

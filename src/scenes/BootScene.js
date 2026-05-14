@@ -24,6 +24,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.spritesheet('hives',     'hives.png',         { frameWidth: 400, frameHeight: 400 });
     this.load.spritesheet('pickups',   'pickups.png',       { frameWidth: 400, frameHeight: 400 });
     this.load.spritesheet('misc',      'misc.png',          { frameWidth: 400, frameHeight: 400 });
+    this.load.spritesheet('nectar-fountain', 'butterflyfountain-sheet.png', { frameWidth: 400, frameHeight: 400 });
   }
 
   create() {

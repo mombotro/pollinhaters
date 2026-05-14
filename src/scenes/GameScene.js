@@ -421,6 +421,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.buildMenu.visible) {
       this.physics.world.pause();
       if (_pad) this.buildMenu.gpUpdate(_pad);
+      if (Phaser.Input.Keyboard.JustDown(this._bKey)) this.buildMenu.hide();
       this._touchControls.update();
       return;
     }

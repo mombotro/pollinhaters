@@ -743,6 +743,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _spawnFlower(x, y, initialBloom = false) {
+    if (this.flowers.getLength() >= FLOWER.MAX_COUNT) return;
     const type = pickFlowerType(Phaser.Math.Between(1, 100));
     const f = new Flower(this, x, y, type, initialBloom);
     f.setDepth(DEPTH.ENVIRONMENT);

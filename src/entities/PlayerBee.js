@@ -49,6 +49,7 @@ export default class PlayerBee extends Phaser.Physics.Arcade.Sprite {
       } else if (this._dashTargetRotation !== null) {
         this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, this._dashTargetRotation, 0.5);
       }
+      this._touchDash = false;
     } else {
       if ((Phaser.Input.Keyboard.JustDown(this._space) || this._touchDash) && time - this.lastDashTime >= BEE.DASH_COOLDOWN) {
 

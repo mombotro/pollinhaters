@@ -89,6 +89,20 @@ export default class LevelUpMenu {
     });
   }
 
+  kbUpdate(upJD, downJD, enterJD) {
+    const n = this._options?.length ?? 0;
+    if (!n) return;
+    if (upJD || downJD) {
+      const dy = upJD ? -1 : 1;
+      this._gpIdx = (this._gpIdx + dy + n) % n;
+      this._gpRefresh();
+    }
+    if (enterJD && this._options[this._gpIdx]) {
+      this._onSelect(this._options[this._gpIdx]);
+      this.hide();
+    }
+  }
+
   gpUpdate(pad) {
     const n = this._options?.length ?? 0;
     if (!n) return;

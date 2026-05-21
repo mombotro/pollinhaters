@@ -116,6 +116,9 @@ export default class MetaUpgradeScene extends Phaser.Scene {
     this._gpDirWas = true;
     this._gpLRWas  = true;
 
+    this._cursors  = this.input.keyboard.createCursorKeys();
+    this._enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
     this._switchTab('upgrades');
     this._refresh();
   }
@@ -292,6 +295,28 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   }
 
   update() {
+    // Keyboard navigation
+    const upJD    = Phaser.Input.Keyboard.JustDown(this._cursors.up);
+    const downJD  = Phaser.Input.Keyboard.JustDown(this._cursors.down);
+    const leftJD  = Phaser.Input.Keyboard.JustDown(this._cursors.left);
+    const rightJD = Phaser.Input.Keyboard.JustDown(this._cursors.right);
+    const enterJD = Phaser.Input.Keyboard.JustDown(this._enterKey);
+
+    if (leftJD || rightJD) {
+      const tabs = ['upgrades', 'buildables'];
+      const idx  = tabs.indexOf(this._activeTab);
+      this._switchTab(tabs[(idx + (rightJD ? 1 : -1) + tabs.length) % tabs.length]);
+    }
+    if (upJD || downJD) {
+      const dy = upJD ? -1 : 1;
+      this._gpIdx = (this._gpIdx + dy + this._navObjs.length) % this._navObjs.length;
+      this._gpRefresh();
+      const rows = this._activeTab === 'upgrades' ? this._upgradeRows : this._buildableRows;
+      if (this._gpIdx < rows.length) this._ensureVisible(this._gpIdx);
+    }
+    if (enterJD) this._navActions[this._gpIdx]?.();
+
+    // Gamepad navigation
     const gp  = this.input.gamepad;
     const pad = gp?.total > 0 ? gp.gamepads.find(p => p?.connected) : null;
     if (!pad) return;

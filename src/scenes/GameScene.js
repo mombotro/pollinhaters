@@ -362,9 +362,11 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    this._bKey   = this.input.keyboard.addKey('B');
-    this._hKey   = this.input.keyboard.addKey('H');
-    this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this._bKey      = this.input.keyboard.addKey('B');
+    this._hKey      = this.input.keyboard.addKey('H');
+    this._escKey    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this._menuCursors = this.input.keyboard.createCursorKeys();
+    this._enterKey    = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this._gpStartWasDown = false;
     this._paused = false;
     this._placing = null;
@@ -403,6 +405,11 @@ export default class GameScene extends Phaser.Scene {
     if (this.levelUpMenu.visible) {
       this.physics.world.pause();
       if (_pad) this.levelUpMenu.gpUpdate(_pad);
+      this.levelUpMenu.kbUpdate(
+        Phaser.Input.Keyboard.JustDown(this._menuCursors.up),
+        Phaser.Input.Keyboard.JustDown(this._menuCursors.down),
+        Phaser.Input.Keyboard.JustDown(this._enterKey),
+      );
       return;
     }
 
@@ -423,6 +430,11 @@ export default class GameScene extends Phaser.Scene {
     if (this.buildMenu.visible) {
       this.physics.world.pause();
       if (_pad) this.buildMenu.gpUpdate(_pad);
+      this.buildMenu.kbUpdate(
+        Phaser.Input.Keyboard.JustDown(this._menuCursors.up),
+        Phaser.Input.Keyboard.JustDown(this._menuCursors.down),
+        Phaser.Input.Keyboard.JustDown(this._enterKey),
+      );
       if (Phaser.Input.Keyboard.JustDown(this._bKey)) this.buildMenu.hide();
       this._touchControls.update();
       return;

@@ -64,6 +64,10 @@ export default class MenuScene extends Phaser.Scene {
       () => this.scene.start('GameScene', { playground: true }),
       () => this._showControls(),
     ];
+
+    this._cursors  = this.input.keyboard.createCursorKeys();
+    this._enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
     this._refreshHighlight();
   }
 
@@ -121,17 +125,33 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   update() {
-    const gp = this.input.gamepad;
+    // Keyboard navigation
+    const upJD    = Phaser.Input.Keyboard.JustDown(this._cursors.up);
+    const downJD  = Phaser.Input.Keyboard.JustDown(this._cursors.down);
+    const enterJD = Phaser.Input.Keyboard.JustDown(this._enterKey);
+    const escJD   = Phaser.Input.Keyboard.JustDown(this._cursors.left) ||
+                    Phaser.Input.Keyboard.JustDown(this._cursors.right);
+
+    if (escJD && this._controlsObjs) { this._hideControls(); return; }
+    if (!this._controlsObjs) {
+      if (upJD || downJD) {
+        const dy = upJD ? -1 : 1;
+        this._selIdx = (this._selIdx + dy + this._btns.length) % this._btns.length;
+        this._refreshHighlight();
+      }
+      if (enterJD) { this._actions[this._selIdx](); return; }
+    }
+
+    // Gamepad navigation
+    const gp  = this.input.gamepad;
     const pad = gp?.total > 0 ? gp.gamepads.find(p => p?.connected) : null;
     if (!pad) return;
 
-    // B closes controls panel
     const bDown = pad.buttons[1]?.pressed ?? false;
     if (bDown && !this._gpBWasDown && this._controlsObjs) this._hideControls();
     this._gpBWasDown = bDown;
     if (this._controlsObjs) return;
 
-    // D-pad / left stick navigate
     const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed ||
                     Math.abs(pad.leftStick.y) > 0.4;
     if (dirDown && !this._gpDirWasDown) {
@@ -141,7 +161,6 @@ export default class MenuScene extends Phaser.Scene {
     }
     this._gpDirWasDown = dirDown;
 
-    // A confirms
     const aDown = pad.buttons[0]?.pressed ?? false;
     if (aDown && !this._gpAWasDown) this._actions[this._selIdx]();
     this._gpAWasDown = aDown;

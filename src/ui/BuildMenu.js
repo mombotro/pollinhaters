@@ -108,6 +108,22 @@ export default class BuildMenu {
     });
   }
 
+  kbUpdate(upJD, downJD, enterJD) {
+    if (!this._visibleIndices.length) return;
+    if (upJD || downJD) {
+      const dy = upJD ? -1 : 1;
+      this._gpIdx = (this._gpIdx + dy + this._visibleIndices.length) % this._visibleIndices.length;
+      this._gpRefresh();
+    }
+    if (enterJD) {
+      const itemIdx = this._visibleIndices[this._gpIdx];
+      if (itemIdx !== undefined && this._buttons[itemIdx]._enabled) {
+        this._onSelect(this._allItems[itemIdx].key);
+        this.hide();
+      }
+    }
+  }
+
   gpUpdate(pad) {
     const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed ||
                     Math.abs(pad.leftStick.y) > 0.4;

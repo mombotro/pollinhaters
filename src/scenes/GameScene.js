@@ -379,7 +379,7 @@ export default class GameScene extends Phaser.Scene {
       } else {
         this._enterPlacementMode(key);
       }
-    }, () => this.resources.getHoney());
+    }, () => this.resources.getHoney(), this._playground);
 
     this.levelUpMenu = new LevelUpMenu(this, (key) => {
       if (this.upgrades.purchase(key)) {

@@ -2,10 +2,11 @@ import { TOWER, WORKER, SOLDIER, NECTAR_FOUNTAIN } from '../constants.js';
 import MetaSave from '../systems/MetaSave.js';
 
 export default class BuildMenu {
-  constructor(scene, onSelect, getHoney) {
-    this._scene    = scene;
-    this._onSelect = onSelect;
-    this._getHoney = getHoney;
+  constructor(scene, onSelect, getHoney, playground = false) {
+    this._scene      = scene;
+    this._onSelect   = onSelect;
+    this._getHoney   = getHoney;
+    this._playground = playground;
 
     const s  = { fontSize: '17px', color: '#ffd700', stroke: '#000', strokeThickness: 3 };
     const hs = { ...s, fontSize: '20px', color: '#ffffff' };
@@ -57,7 +58,7 @@ export default class BuildMenu {
     this._visibleIndices = [];
 
     this._allItems.forEach((item, i) => {
-      const locked = item.unlockKey && !(save.upgrades[item.unlockKey] >= 1);
+      const locked = !this._playground && item.unlockKey && !(save.upgrades[item.unlockKey] >= 1);
       if (locked) {
         this._buttons[i].setVisible(false).disableInteractive();
       } else {

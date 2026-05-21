@@ -101,9 +101,9 @@ export default class BuildMenu {
     this._refreshAffordability();
     this._visibleIndices.forEach((itemIdx, slot) => {
       const btn = this._buttons[itemIdx];
-      if (slot === this._gpIdx) btn.setColor('#ffffff');
-      else if (!btn._enabled)   btn.setColor('#555555');
-      else                      btn.setColor('#ffd700');
+      if (!btn._enabled)             btn.setColor('#555555');
+      else if (slot === this._gpIdx) btn.setColor('#ffffff');
+      else                           btn.setColor('#ffd700');
     });
   }
 

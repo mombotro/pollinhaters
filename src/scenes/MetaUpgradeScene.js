@@ -18,13 +18,21 @@ const UPGRADES = [
   { key: 'EXTRA_HIVES_META',  label: 'Extra Hive',     cost: 200, max: 2,  desc: '+1 enemy wasp hive per level (harder, more threats)' },
 ];
 
-const ROW_H    = 52;
+const BUILDABLE_UNLOCKS = [
+  { key: 'UNLOCK_RESIN_TRAP',       label: 'Resin Trap',       cost: 50,  max: 1, desc: 'Unlock: slows wasps that walk through resin' },
+  { key: 'UNLOCK_GUARD_POST',       label: 'Guard Post',       cost: 100, max: 1, desc: 'Unlock: guard bee that orbits and fires stingers' },
+  { key: 'UNLOCK_POISON_HONEY',     label: 'Poison Honey',     cost: 150, max: 1, desc: 'Unlock: lure that poisons wasps and sends them to hive' },
+  { key: 'UNLOCK_NECTAR_FOUNTAIN',  label: 'Nectar Fountain',  cost: 150, max: 1, desc: 'Unlock: generates honey passively over time' },
+  { key: 'UNLOCK_RECRUIT_SOLDIER',  label: 'Recruit Soldier',  cost: 100, max: 1, desc: 'Unlock: hire soldier bees during a run' },
+];
+
+const ROW_H         = 52;
 const SCROLL_TOP    = 145;
 const SCROLL_BOTTOM = 625;
 const SCROLL_H      = SCROLL_BOTTOM - SCROLL_TOP;
-const COL_NAME  = 180;
-const COL_LVL   = 720;
-const COL_BTN   = 940;
+const COL_NAME      = 180;
+const COL_LVL       = 720;
+const COL_BTN       = 940;
 
 export default class MetaUpgradeScene extends Phaser.Scene {
   constructor() { super('MetaUpgradeScene'); }
@@ -32,24 +40,88 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   create() {
     const cx = 640;
 
-    this.add.text(cx, 45, 'UPGRADES', {
+    this.add.text(cx, 40, 'UPGRADES', {
       fontSize: '44px', color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this._jellyText = this.add.text(cx, 100, '', {
+    this._jellyText = this.add.text(cx, 82, '', {
       fontSize: '26px', color: '#ffcc00',
     }).setOrigin(0.5);
 
-    // Scroll mask — clips the row area
+    // Tab buttons
+    this._tabUpgradeBtn = this.add.text(cx - 120, 110, '[ UPGRADES ]', {
+      fontSize: '19px', color: '#ffd700',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    this._tabBuildBtn = this.add.text(cx + 120, 110, '[ BUILDABLES ]', {
+      fontSize: '19px', color: '#888888',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    this._tabUpgradeBtn.on('pointerdown', () => this._switchTab('upgrades'));
+    this._tabBuildBtn.on('pointerdown',   () => this._switchTab('buildables'));
+
+    // Scroll mask
     const maskGfx = this.make.graphics({ add: false });
     maskGfx.fillRect(0, SCROLL_TOP, 1280, SCROLL_H);
     const scrollMask = maskGfx.createGeometryMask();
 
-    this._scrollY  = 0;
-    this._maxScroll = Math.max(0, UPGRADES.length * ROW_H - SCROLL_H);
+    this._upgradeScrollY     = 0;
+    this._buildableScrollY   = 0;
+    this._upgradeMaxScroll   = Math.max(0, UPGRADES.length * ROW_H - SCROLL_H);
+    this._buildableMaxScroll = Math.max(0, BUILDABLE_UNLOCKS.length * ROW_H - SCROLL_H);
+    this._activeTab = 'upgrades';
 
-    this._rows = [];
-    UPGRADES.forEach((def, i) => {
+    this._upgradeRows   = this._buildRows(UPGRADES, scrollMask);
+    this._buildableRows = this._buildRows(BUILDABLE_UNLOCKS, scrollMask);
+
+    // Scroll arrows
+    this._arrowUp   = this.add.text(cx, SCROLL_TOP - 14, '▲', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
+    this._arrowDown = this.add.text(cx, SCROLL_BOTTOM + 14, '▼', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
+
+    // Separator lines
+    const sepGfx = this.add.graphics();
+    sepGfx.lineStyle(1, 0x444444, 1);
+    sepGfx.lineBetween(100, SCROLL_TOP - 1, 1180, SCROLL_TOP - 1);
+    sepGfx.lineBetween(100, SCROLL_BOTTOM + 1, 1180, SCROLL_BOTTOM + 1);
+
+    // Footer buttons
+    this._refundBtn = this.add.text(cx - 220, 660, '[ REFUND ALL ]', {
+      fontSize: '20px', color: '#ffaa00',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    this._refundBtn.on('pointerover', () => this._refundBtn.setColor('#ffffff'));
+    this._refundBtn.on('pointerout',  () => this._refundBtn.setColor('#ffaa00'));
+    this._refundBtn.on('pointerdown', () => this._doRefund());
+
+    this._resetBtn = this.add.text(cx + 220, 660, '[ RESET SAVE ]', {
+      fontSize: '20px', color: '#ff4444',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    this._resetBtn.on('pointerover', () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff8888'); });
+    this._resetBtn.on('pointerout',  () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff4444'); });
+    this._resetBtn.on('pointerdown', () => this._doReset());
+
+    this._backBtn = this.add.text(cx, 703, '[ BACK TO MENU ]', {
+      fontSize: '26px', color: '#ffd700',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    this._backBtn.on('pointerover', () => this._backBtn.setColor('#ffffff'));
+    this._backBtn.on('pointerout',  () => this._backBtn.setColor('#ffd700'));
+    this._backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+
+    this.input.on('wheel', (_ptr, _objs, _dx, deltaY) => {
+      this._doScroll(deltaY > 0 ? 48 : -48);
+    });
+
+    this._gpIdx    = 0;
+    this._gpAWas   = true;
+    this._gpBWas   = true;
+    this._gpDirWas = true;
+    this._gpLRWas  = true;
+
+    this._switchTab('upgrades');
+    this._refresh();
+  }
+
+  _buildRows(defs, scrollMask) {
+    return defs.map((def, i) => {
       const baseY = SCROLL_TOP + i * ROW_H + ROW_H / 2;
 
       const nameText = this.add.text(COL_NAME, baseY, def.label, {
@@ -76,74 +148,62 @@ export default class MetaUpgradeScene extends Phaser.Scene {
         this._refresh();
       });
 
-      this._rows.push({ def, nameText, descText, levelText, btn, baseY });
+      return { def, nameText, descText, levelText, btn, baseY };
+    });
+  }
+
+  _switchTab(tab) {
+    this._activeTab = tab;
+
+    this._upgradeRows.forEach(r => {
+      r.nameText.setVisible(tab === 'upgrades');
+      r.descText.setVisible(tab === 'upgrades');
+      r.levelText.setVisible(tab === 'upgrades');
+      r.btn.setVisible(tab === 'upgrades');
+    });
+    this._buildableRows.forEach(r => {
+      r.nameText.setVisible(tab === 'buildables');
+      r.descText.setVisible(tab === 'buildables');
+      r.levelText.setVisible(tab === 'buildables');
+      r.btn.setVisible(tab === 'buildables');
     });
 
-    // Scroll arrows (fixed, above/below viewport)
-    this._arrowUp   = this.add.text(cx, SCROLL_TOP - 14, '▲', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
-    this._arrowDown = this.add.text(cx, SCROLL_BOTTOM + 14, '▼', { fontSize: '18px', color: '#888888' }).setOrigin(0.5);
+    this._tabUpgradeBtn.setColor(tab === 'upgrades'   ? '#ffd700' : '#888888');
+    this._tabBuildBtn.setColor(  tab === 'buildables' ? '#ffd700' : '#888888');
 
-    // Separator lines
-    const sepGfx = this.add.graphics();
-    sepGfx.lineStyle(1, 0x444444, 1);
-    sepGfx.lineBetween(100, SCROLL_TOP - 1, 1180, SCROLL_TOP - 1);
-    sepGfx.lineBetween(100, SCROLL_BOTTOM + 1, 1180, SCROLL_BOTTOM + 1);
-
-    // Footer buttons (fixed)
-    this._refundBtn = this.add.text(cx - 220, 660, '[ REFUND ALL ]', {
-      fontSize: '20px', color: '#ffaa00',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this._refundBtn.on('pointerover', () => this._refundBtn.setColor('#ffffff'));
-    this._refundBtn.on('pointerout',  () => this._refundBtn.setColor('#ffaa00'));
-    this._refundBtn.on('pointerdown', () => this._doRefund());
-
-    this._resetBtn = this.add.text(cx + 220, 660, '[ RESET SAVE ]', {
-      fontSize: '20px', color: '#ff4444',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this._resetBtn.on('pointerover', () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff8888'); });
-    this._resetBtn.on('pointerout',  () => { if (!this._resetBtn._pending) this._resetBtn.setColor('#ff4444'); });
-    this._resetBtn.on('pointerdown', () => this._doReset());
-
-    this._backBtn = this.add.text(cx, 703, '[ BACK TO MENU ]', {
-      fontSize: '26px', color: '#ffd700',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this._backBtn.on('pointerover', () => this._backBtn.setColor('#ffffff'));
-    this._backBtn.on('pointerout',  () => this._backBtn.setColor('#ffd700'));
-    this._backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
-
-    // Mouse wheel scroll
-    this.input.on('wheel', (_ptr, _objs, _dx, deltaY) => {
-      this._doScroll(deltaY > 0 ? 48 : -48);
-    });
-
-    // Gamepad nav arrays
-    this._navObjs    = [...this._rows.map(r => r.nameText), this._refundBtn, this._resetBtn, this._backBtn];
-    this._navColors  = [...this._rows.map(() => '#ffffff'), '#ffaa00', '#ff4444', '#ffd700'];
+    const rows = tab === 'upgrades' ? this._upgradeRows : this._buildableRows;
+    this._navObjs    = [...rows.map(r => r.nameText), this._refundBtn, this._resetBtn, this._backBtn];
+    this._navColors  = [...rows.map(() => '#ffffff'), '#ffaa00', '#ff4444', '#ffd700'];
     this._navActions = [
-      ...this._rows.map(r => () => {
+      ...rows.map(r => () => {
         if (r.btn._enabled) { MetaSave.purchaseUpgrade(r.def.key, r.def.cost); this._refresh(); }
       }),
       () => this._doRefund(),
       () => this._doReset(),
       () => this.scene.start('MenuScene'),
     ];
-    this._gpIdx    = 0;
-    this._gpAWas   = true;
-    this._gpBWas   = true;
-    this._gpDirWas = true;
+    this._gpIdx = 0;
 
+    this._repositionRows();
+    this._updateArrows();
     this._refresh();
   }
 
   _doScroll(dy) {
-    this._scrollY = Phaser.Math.Clamp(this._scrollY + dy, 0, this._maxScroll);
+    if (this._activeTab === 'upgrades') {
+      this._upgradeScrollY = Phaser.Math.Clamp(this._upgradeScrollY + dy, 0, this._upgradeMaxScroll);
+    } else {
+      this._buildableScrollY = Phaser.Math.Clamp(this._buildableScrollY + dy, 0, this._buildableMaxScroll);
+    }
     this._repositionRows();
     this._updateArrows();
   }
 
   _repositionRows() {
-    this._rows.forEach((row, i) => {
-      const y = SCROLL_TOP + i * ROW_H + ROW_H / 2 - this._scrollY;
+    const scrollY = this._activeTab === 'upgrades' ? this._upgradeScrollY : this._buildableScrollY;
+    const rows    = this._activeTab === 'upgrades' ? this._upgradeRows    : this._buildableRows;
+    rows.forEach((row, i) => {
+      const y = SCROLL_TOP + i * ROW_H + ROW_H / 2 - scrollY;
       row.nameText.setY(y);
       row.descText.setY(y + 16);
       row.levelText.setY(y);
@@ -152,24 +212,28 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   }
 
   _updateArrows() {
-    this._arrowUp.setAlpha(this._scrollY > 0 ? 1 : 0.2);
-    this._arrowDown.setAlpha(this._scrollY < this._maxScroll ? 1 : 0.2);
+    const scrollY   = this._activeTab === 'upgrades' ? this._upgradeScrollY   : this._buildableScrollY;
+    const maxScroll = this._activeTab === 'upgrades' ? this._upgradeMaxScroll  : this._buildableMaxScroll;
+    this._arrowUp.setAlpha(scrollY > 0 ? 1 : 0.2);
+    this._arrowDown.setAlpha(scrollY < maxScroll ? 1 : 0.2);
   }
 
   _ensureVisible(rowIdx) {
-    if (rowIdx >= this._rows.length) return;
+    const rows    = this._activeTab === 'upgrades' ? this._upgradeRows    : this._buildableRows;
+    const scrollY = this._activeTab === 'upgrades' ? this._upgradeScrollY : this._buildableScrollY;
+    if (rowIdx >= rows.length) return;
     const rowTop = rowIdx * ROW_H;
     const rowBot = rowTop + ROW_H;
-    if (rowTop < this._scrollY) {
-      this._doScroll(rowTop - this._scrollY);
-    } else if (rowBot > this._scrollY + SCROLL_H) {
-      this._doScroll(rowBot - (this._scrollY + SCROLL_H));
+    if (rowTop < scrollY) {
+      this._doScroll(rowTop - scrollY);
+    } else if (rowBot > scrollY + SCROLL_H) {
+      this._doScroll(rowBot - (scrollY + SCROLL_H));
     }
   }
 
   _doRefund() {
     const s = MetaSave.load();
-    UPGRADES.forEach(def => {
+    [...UPGRADES, ...BUILDABLE_UNLOCKS].forEach(def => {
       s.jellyBalance += (s.upgrades[def.key] ?? 0) * def.cost;
       s.upgrades[def.key] = 0;
     });
@@ -199,7 +263,8 @@ export default class MetaUpgradeScene extends Phaser.Scene {
   _refresh() {
     const s = MetaSave.load();
     this._jellyText.setText(`Royal Jelly: ${s.jellyBalance}`);
-    this._rows.forEach(({ def, levelText, btn }) => {
+
+    [...this._upgradeRows, ...this._buildableRows].forEach(({ def, levelText, btn }) => {
       const level = s.upgrades[def.key] ?? 0;
       const maxed = level >= def.max;
       const canAfford = s.jellyBalance >= def.cost;
@@ -231,13 +296,26 @@ export default class MetaUpgradeScene extends Phaser.Scene {
     const pad = gp?.total > 0 ? gp.gamepads.find(p => p?.connected) : null;
     if (!pad) return;
 
+    // Left/right: switch tabs
+    const lrDown = pad.buttons[14]?.pressed || pad.buttons[15]?.pressed ||
+                   Math.abs(pad.leftStick.x) > 0.4;
+    if (lrDown && !this._gpLRWas) {
+      const tabs = ['upgrades', 'buildables'];
+      const idx  = tabs.indexOf(this._activeTab);
+      const dx   = (pad.buttons[14]?.pressed || pad.leftStick.x < -0.4) ? -1 : 1;
+      this._switchTab(tabs[(idx + dx + tabs.length) % tabs.length]);
+    }
+    this._gpLRWas = lrDown;
+
+    // Up/down: navigate rows
     const dirDown = pad.buttons[12]?.pressed || pad.buttons[13]?.pressed ||
                     Math.abs(pad.leftStick.y) > 0.4;
     if (dirDown && !this._gpDirWas) {
       const dy = (pad.buttons[12]?.pressed || pad.leftStick.y < -0.4) ? -1 : 1;
       this._gpIdx = (this._gpIdx + dy + this._navObjs.length) % this._navObjs.length;
       this._gpRefresh();
-      if (this._gpIdx < this._rows.length) this._ensureVisible(this._gpIdx);
+      const rows = this._activeTab === 'upgrades' ? this._upgradeRows : this._buildableRows;
+      if (this._gpIdx < rows.length) this._ensureVisible(this._gpIdx);
     }
     this._gpDirWas = dirDown;
 

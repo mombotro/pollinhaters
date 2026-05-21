@@ -325,8 +325,6 @@ export default class GameScene extends Phaser.Scene {
       }
 
       if (wasp.waspType !== 'hunter') return;
-      if (now - wasp.lastHit < WASP.HIT_COOLDOWN) return;
-      wasp.lastHit = now;
 
       const sap = this.resources.getSapCarried('player');
       if (sap > 0) {
@@ -335,6 +333,9 @@ export default class GameScene extends Phaser.Scene {
       } else {
         if (bee.takeDamage(WASP.DAMAGE)) this._onPlayerDeath();
       }
+      this._dropPickup(wasp.x, wasp.y, wasp.honeyCarried ? 'honey' : 'xp');
+      if (Math.random() < 0.10) this._dropPickup(wasp.x, wasp.y, 'health');
+      wasp.destroy();
     });
 
     this.physics.add.overlap(this.wasps, this.hive, (a, b) => {
